@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Server.Envir;
 using Server.Web.Services;
+using System;
 using System.Collections.Generic;
 using Library;
 
@@ -32,19 +33,35 @@ namespace Server.Web.Pages
 
         public List<AccountViewModel> Accounts { get; set; } = new();
         public int TotalCount { get; set; }
+        public int CurrentPage { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
 
         [BindProperty(SupportsGet = true)]
         public string? Keyword { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public int PageNumber { get; set; } = 1;
 
         public string? Message { get; set; }
 
         public void OnGet()
         {
-            TotalCount = _accountService.GetAccountCount();
+            CurrentPage = PageNumber > 0 ? PageNumber : 1;
 
             if (!string.IsNullOrWhiteSpace(Keyword))
             {
-                Accounts = _accountService.SearchAccounts(Keyword);
+                // 搜索模式
+                var result = _accountService.SearchAccounts(Keyword, CurrentPage, PageSize);
+                Accounts = result.Accounts;
+                TotalCount = result.TotalCount;
+            }
+            else
+            {
+                // 默认显示所有账号（分页）
+                var result = _accountService.GetAllAccounts(CurrentPage, PageSize);
+                Accounts = result.Accounts;
+                TotalCount = result.TotalCount;
             }
         }
 

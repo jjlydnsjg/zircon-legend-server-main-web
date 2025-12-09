@@ -12,14 +12,6 @@
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(Model.Message))
-{
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
-        @Model.Message
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
 <!-- 职业统计 -->
 <div class="row mb-4">
     <div class="col-md-3">
@@ -625,6 +617,77 @@
 
 @section Scripts {
     <script>
+        // AJAX表单绑定
+        document.addEventListener('DOMContentLoaded', function() {
+            // 职业开关按钮 - AJAX提交
+            const toggleForms = document.querySelectorAll('form[asp-page-handler="ToggleClass"]');
+            toggleForms.forEach(function(form) {
+                AjaxForm.bindOne(form, {
+                    successMessage: '职业创建设置已更新',
+                    onSuccess: function(result) {
+                        setTimeout(() => window.location.reload(), 800);
+                    }
+                });
+            });
+
+            // 在线玩家转职表单 - AJAX提交
+            const changeClassForm = document.querySelector('form[asp-page-handler="ChangeClass"]');
+            if (changeClassForm) {
+                changeClassForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    if (confirm('确定要修改该玩家的职业吗？这将清空玩家的所有技能！')) {
+                        AjaxForm.submit(changeClassForm, {
+                            successMessage: '玩家转职成功',
+                            resetForm: true
+                        });
+                    }
+                });
+            }
+
+            // 离线角色转职模态框表单 - AJAX提交
+            const offlineChangeForm = document.querySelector('form[asp-page-handler="ChangeOfflineClass"]');
+            if (offlineChangeForm) {
+                offlineChangeForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    if (confirm('确定要修改该角色的职业吗？这将清空角色的所有技能！')) {
+                        AjaxForm.submit(offlineChangeForm, {
+                            successMessage: '角色转职成功',
+                            closeModal: true,
+                            modalId: 'changeClassModal',
+                            onSuccess: function(result) {
+                                setTimeout(() => window.location.reload(), 1000);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // 新增基础属性表单 - AJAX提交
+            const createStatForm = document.querySelector('form[asp-page-handler="CreateBaseStat"]');
+            if (createStatForm) {
+                AjaxForm.bindOne(createStatForm, {
+                    successMessage: '基础属性已新增',
+                    resetForm: true,
+                    onSuccess: function(result) {
+                        setTimeout(() => window.location.reload(), 1000);
+                    }
+                });
+            }
+
+            // 编辑基础属性模态框表单 - AJAX提交
+            const updateStatForm = document.querySelector('form[asp-page-handler="UpdateBaseStat"]');
+            if (updateStatForm) {
+                AjaxForm.bindOne(updateStatForm, {
+                    successMessage: '基础属性已保存',
+                    closeModal: true,
+                    modalId: 'editStatModal',
+                    onSuccess: function(result) {
+                        setTimeout(() => window.location.reload(), 1000);
+                    }
+                });
+            }
+        });
+
         // 转职 Modal
         var changeClassModal = document.getElementById('changeClassModal');
         changeClassModal.addEventListener('show.bs.modal', function (event) {

@@ -12,14 +12,6 @@
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(Model.Message))
-{
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
-        @Model.Message
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
 <!-- Spawn Monster Form -->
 <div class="card mb-4">
     <div class="card-header bg-danger text-white">
@@ -116,12 +108,12 @@
                         <th>操作</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="monstersTableBody">
                     @if (Model.Monsters.Any())
                     {
                         @foreach (var monster in Model.Monsters)
                         {
-                            <tr>
+                            <tr data-monster-index="@monster.Index">
                                 <td><code>@monster.Index</code></td>
                                 <td>
                                     <strong class="@(monster.IsBoss ? "text-danger" : "")">
@@ -156,7 +148,7 @@
                                             <i class="bi bi-pencil"></i>
                                         </button>
                                         <button type="button" class="btn btn-outline-danger"
-                                                onclick="fillSpawnMonster(@monster.Index, '@monster.MonsterName')"
+                                                onclick="fillSpawnMonster(@monster.Index)"
                                                 title="召唤此怪物">
                                             <i class="bi bi-plus-circle"></i>
                                         </button>
@@ -399,10 +391,108 @@
     </div>
 </div>
 
+@section Scripts {
 <script>
 var isCreateMode = false;
 
-function fillSpawnMonster(monsterIndex, monsterName) {
+function escapeHtml(value) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(value ?? '').replace(/[&<>"']/g, (m) => map[m]);
+}
+
+function formatNumber(value) {
+    const num = Number(value || 0);
+    return Number.isFinite(num) ? num.toLocaleString() : '0';
+}
+
+function buildMonsterRow(monster) {
+    if (!monster) return '';
+    const name = escapeHtml(monster.monsterName);
+    const isBoss = monster.isBoss === true;
+    const bossBadge = isBoss ? '<span class="badge bg-danger ms-1">BOSS</span>' : '';
+    const typeBadge = isBoss ? '<span class="badge bg-danger">Boss</span>' : '<span class="badge bg-secondary">普通</span>';
+    return `<tr data-monster-index="${monster.index}">
+                <td><code>${monster.index}</code></td>
+                <td>
+                    <strong class="${isBoss ? 'text-danger' : ''}">
+                        ${name}
+                        ${bossBadge}
+                    </strong>
+                </td>
+                <td>${monster.level}</td>
+                <td>${formatNumber(monster.experience)}</td>
+                <td>${formatNumber(monster.hp)}</td>
+                <td>${monster.minAC} - ${monster.maxAC}</td>
+                <td>${monster.minDC} - ${monster.maxDC}</td>
+                <td>${monster.viewRange}</td>
+                <td>${typeBadge}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary" onclick="editMonster(${monster.index})" title="编辑属性">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="fillSpawnMonster(${monster.index})" title="召唤此怪物">
+                            <i class="bi bi-plus-circle"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+}
+
+function upsertMonsterRow(monster) {
+    if (!monster) return;
+    const tbody = document.getElementById('monstersTableBody');
+    if (!tbody) return;
+
+    const existing = tbody.querySelector(`[data-monster-index="${monster.index}"]`);
+    const rowHtml = buildMonsterRow(monster);
+    if (existing) {
+        existing.outerHTML = rowHtml;
+    } else {
+        tbody.insertAdjacentHTML('afterbegin', rowHtml);
+    }
+}
+
+// 召唤怪物表单 - AJAX提交
+document.addEventListener('DOMContentLoaded', function() {
+    const spawnForm = document.querySelector('form[asp-page-handler="SpawnMonster"]');
+    if (spawnForm) {
+        AjaxForm.bindOne(spawnForm, {
+            successMessage: '怪物已成功召唤',
+            resetForm: false
+        });
+    }
+
+    // 清除地图怪物表单 - AJAX提交
+    const killForm = document.querySelector('form[asp-page-handler="KillMapMonsters"]');
+    if (killForm) {
+        killForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (confirm('确定要清除该玩家所在地图的所有怪物吗?')) {
+                AjaxForm.submit(killForm, {
+                    successMessage: '地图怪物已清除'
+                });
+            }
+        });
+    }
+
+    // 怪物模态框表单 - AJAX提交
+    const monsterForm = document.getElementById('monsterForm');
+    if (monsterForm) {
+        AjaxForm.bindOne(monsterForm, {
+            successMessage: '怪物信息已保存',
+            closeModal: true,
+            modalId: 'monsterModal',
+            onSuccess: function(result) {
+                if (result && result.data) {
+                    upsertMonsterRow(result.data);
+                }
+            }
+        });
+    }
+});
+
+function fillSpawnMonster(monsterIndex) {
     document.getElementById('spawnMonsterIndex').value = monsterIndex;
     document.getElementById('spawnPlayerName').focus();
 }
@@ -489,11 +579,12 @@ function editMonster(monsterIndex) {
                 // Show modal
                 new bootstrap.Modal(document.getElementById('monsterModal')).show();
             } else {
-                alert('加载怪物信息失败: ' + result.message);
+                ToastManager.error('加载怪物信息失败: ' + result.message);
             }
         })
         .catch(error => {
-            alert('请求失败: ' + error);
+            ToastManager.error('请求失败: ' + error.message);
         });
 }
 </script>
+}

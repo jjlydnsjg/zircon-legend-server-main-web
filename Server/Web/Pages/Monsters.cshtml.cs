@@ -28,9 +28,34 @@ namespace Server.Web.Pages
 
         public string? Message { get; set; }
 
+        private bool IsAjaxRequest()
+        {
+            if (HttpContext?.Request?.Headers == null) return false;
+            return HttpContext.Request.Headers.TryGetValue("X-Requested-With", out var values)
+                   && values.Any(v => v.Equals("XMLHttpRequest", System.StringComparison.OrdinalIgnoreCase));
+        }
+
         public void OnGet()
         {
             LoadMonsters();
+        }
+
+        private MonsterViewModel ToViewModel(MonsterInfo monster)
+        {
+            return new MonsterViewModel
+            {
+                Index = monster.Index,
+                MonsterName = monster.MonsterName ?? "Unknown",
+                Level = monster.Level,
+                Experience = (long)monster.Experience,
+                HP = monster.Stats?[Stat.Health] ?? 0,
+                MinAC = monster.Stats?[Stat.MinAC] ?? 0,
+                MaxAC = monster.Stats?[Stat.MaxAC] ?? 0,
+                MinDC = monster.Stats?[Stat.MinDC] ?? 0,
+                MaxDC = monster.Stats?[Stat.MaxDC] ?? 0,
+                ViewRange = monster.ViewRange,
+                IsBoss = monster.IsBoss
+            };
         }
 
         private void LoadMonsters()
@@ -56,20 +81,7 @@ namespace Server.Web.Pages
                     .ThenBy(m => m.Index)
                     .Skip((CurrentPage - 1) * PageSize)
                     .Take(PageSize)
-                    .Select(m => new MonsterViewModel
-                    {
-                        Index = m.Index,
-                        MonsterName = m.MonsterName ?? "Unknown",
-                        Level = m.Level,
-                        Experience = (long)m.Experience,
-                        HP = m.Stats?[Stat.Health] ?? 0,
-                        MinAC = m.Stats?[Stat.MinAC] ?? 0,
-                        MaxAC = m.Stats?[Stat.MaxAC] ?? 0,
-                        MinDC = m.Stats?[Stat.MinDC] ?? 0,
-                        MaxDC = m.Stats?[Stat.MaxDC] ?? 0,
-                        ViewRange = m.ViewRange,
-                        IsBoss = m.IsBoss
-                    })
+                    .Select(ToViewModel)
                     .ToList();
             }
             catch
@@ -82,7 +94,10 @@ namespace Server.Web.Pages
         {
             if (!HasPermission(AccountIdentity.Admin))
             {
-                Message = "权限不足，需要 Admin 权限";
+                var result = new { success = false, message = "权限不足，需要 Admin 权限" };
+                if (IsAjaxRequest()) return new JsonResult(result);
+
+                Message = result.message;
                 LoadMonsters();
                 return Page();
             }
@@ -95,7 +110,10 @@ namespace Server.Web.Pages
 
                 if (player == null)
                 {
-                    Message = $"玩家 {playerName} 不在线";
+                    var result = new { success = false, message = $"玩家 {playerName} 不在线" };
+                    if (IsAjaxRequest()) return new JsonResult(result);
+
+                    Message = result.message;
                     LoadMonsters();
                     return Page();
                 }
@@ -104,7 +122,10 @@ namespace Server.Web.Pages
                 var monsterInfo = SEnvir.MonsterInfoList?.Binding?.FirstOrDefault(m => m.Index == monsterIndex);
                 if (monsterInfo == null)
                 {
-                    Message = $"怪物索引 {monsterIndex} 不存在";
+                    var result = new { success = false, message = $"怪物索引 {monsterIndex} 不存在" };
+                    if (IsAjaxRequest()) return new JsonResult(result);
+
+                    Message = result.message;
                     LoadMonsters();
                     return Page();
                 }
@@ -119,7 +140,10 @@ namespace Server.Web.Pages
                 var map = player.CurrentMap;
                 if (map == null)
                 {
-                    Message = $"无法获取玩家 {playerName} 所在地图";
+                    var result = new { success = false, message = $"无法获取玩家 {playerName} 所在地图" };
+                    if (IsAjaxRequest()) return new JsonResult(result);
+
+                    Message = result.message;
                     LoadMonsters();
                     return Page();
                 }
@@ -127,7 +151,10 @@ namespace Server.Web.Pages
                 var mapInfo = map.Info;
                 if (mapInfo == null)
                 {
-                    Message = $"无法获取玩家 {playerName} 所在地图信息";
+                    var result = new { success = false, message = $"无法获取玩家 {playerName} 所在地图信息" };
+                    if (IsAjaxRequest()) return new JsonResult(result);
+
+                    Message = result.message;
                     LoadMonsters();
                     return Page();
                 }
@@ -188,23 +215,33 @@ namespace Server.Web.Pages
                     }
                 }
 
-                Message = $"成功在玩家 {playerName} 附近召唤了 {spawned}/{count} 只 {monsterInfo.MonsterName}";
                 SEnvir.Log($"[Admin] 召唤怪物: {monsterInfo.MonsterName} x{spawned} 在玩家 {playerName} 附近");
+                var success = new { success = true, message = $"成功在玩家 {playerName} 附近召唤了 {spawned}/{count} 只 {monsterInfo.MonsterName}" };
+                if (IsAjaxRequest()) return new JsonResult(success);
+
+                Message = success.message;
+                LoadMonsters();
+                return Page();
             }
             catch (System.Exception ex)
             {
-                Message = $"召唤失败: {ex.Message}";
-            }
+                var result = new { success = false, message = $"召唤失败: {ex.Message}" };
+                if (IsAjaxRequest()) return new JsonResult(result);
 
-            LoadMonsters();
-            return Page();
+                Message = result.message;
+                LoadMonsters();
+                return Page();
+            }
         }
 
         public IActionResult OnPostKillMapMonsters(string playerName)
         {
             if (!HasPermission(AccountIdentity.Admin))
             {
-                Message = "权限不足，需要 Admin 权限";
+                var result = new { success = false, message = "权限不足，需要 Admin 权限" };
+                if (IsAjaxRequest()) return new JsonResult(result);
+
+                Message = result.message;
                 LoadMonsters();
                 return Page();
             }
@@ -216,7 +253,10 @@ namespace Server.Web.Pages
 
                 if (player == null)
                 {
-                    Message = $"玩家 {playerName} 不在线";
+                    var result = new { success = false, message = $"玩家 {playerName} 不在线" };
+                    if (IsAjaxRequest()) return new JsonResult(result);
+
+                    Message = result.message;
                     LoadMonsters();
                     return Page();
                 }
@@ -224,7 +264,10 @@ namespace Server.Web.Pages
                 var map = player.CurrentMap;
                 if (map == null)
                 {
-                    Message = $"无法获取玩家 {playerName} 所在地图";
+                    var result = new { success = false, message = $"无法获取玩家 {playerName} 所在地图" };
+                    if (IsAjaxRequest()) return new JsonResult(result);
+
+                    Message = result.message;
                     LoadMonsters();
                     return Page();
                 }
@@ -241,16 +284,23 @@ namespace Server.Web.Pages
                     }
                 }
 
-                Message = $"已清除玩家 {playerName} 所在地图的 {killed} 只怪物";
                 SEnvir.Log($"[Admin] 清除地图怪物: {map.Info?.Description} 共 {killed} 只");
+                var success = new { success = true, message = $"已清除玩家 {playerName} 所在地图的 {killed} 只怪物" };
+                if (IsAjaxRequest()) return new JsonResult(success);
+
+                Message = success.message;
+                LoadMonsters();
+                return Page();
             }
             catch (System.Exception ex)
             {
-                Message = $"操作失败: {ex.Message}";
-            }
+                var result = new { success = false, message = $"操作失败: {ex.Message}" };
+                if (IsAjaxRequest()) return new JsonResult(result);
 
-            LoadMonsters();
-            return Page();
+                Message = result.message;
+                LoadMonsters();
+                return Page();
+            }
         }
 
         // 获取怪物详情 (AJAX)
@@ -336,7 +386,10 @@ namespace Server.Web.Pages
         {
             if (!HasPermission(AccountIdentity.SuperAdmin))
             {
-                Message = "权限不足，需要 SuperAdmin 权限";
+                var result = new { success = false, message = "权限不足，需要 SuperAdmin 权限" };
+                if (IsAjaxRequest()) return new JsonResult(result);
+
+                Message = result.message;
                 LoadMonsters();
                 return Page();
             }
@@ -345,7 +398,10 @@ namespace Server.Web.Pages
             {
                 if (string.IsNullOrWhiteSpace(monsterName))
                 {
-                    Message = "怪物名称不能为空";
+                    var result = new { success = false, message = "怪物名称不能为空" };
+                    if (IsAjaxRequest()) return new JsonResult(result);
+
+                    Message = result.message;
                     LoadMonsters();
                     return Page();
                 }
@@ -353,7 +409,10 @@ namespace Server.Web.Pages
                 var newMonster = SEnvir.MonsterInfoList?.CreateNewObject();
                 if (newMonster == null)
                 {
-                    Message = "创建怪物失败";
+                    var result = new { success = false, message = "创建怪物失败" };
+                    if (IsAjaxRequest()) return new JsonResult(result);
+
+                    Message = result.message;
                     LoadMonsters();
                     return Page();
                 }
@@ -389,16 +448,28 @@ namespace Server.Web.Pages
                 // 重新计算 Stats
                 newMonster.StatsChanged();
 
-                Message = $"怪物 [{newMonster.Index}] {monsterName} 创建成功";
                 SEnvir.Log($"[Admin] 新建怪物: [{newMonster.Index}] {monsterName}");
+                var success = new
+                {
+                    success = true,
+                    message = $"怪物 [{newMonster.Index}] {monsterName} 创建成功",
+                    data = ToViewModel(newMonster)
+                };
+                if (IsAjaxRequest()) return new JsonResult(success);
+
+                Message = success.message;
+                LoadMonsters();
+                return Page();
             }
             catch (System.Exception ex)
             {
-                Message = $"创建失败: {ex.Message}";
-            }
+                var result = new { success = false, message = $"创建失败: {ex.Message}" };
+                if (IsAjaxRequest()) return new JsonResult(result);
 
-            LoadMonsters();
-            return Page();
+                Message = result.message;
+                LoadMonsters();
+                return Page();
+            }
         }
 
         private void CreateMonsterStat(MonsterInfo monster, Stat stat, int value)
@@ -446,7 +517,10 @@ namespace Server.Web.Pages
         {
             if (!HasPermission(AccountIdentity.SuperAdmin))
             {
-                Message = "权限不足，需要 SuperAdmin 权限";
+                var result = new { success = false, message = "权限不足，需要 SuperAdmin 权限" };
+                if (IsAjaxRequest()) return new JsonResult(result);
+
+                Message = result.message;
                 LoadMonsters();
                 return Page();
             }
@@ -456,7 +530,10 @@ namespace Server.Web.Pages
                 var monster = SEnvir.MonsterInfoList?.Binding?.FirstOrDefault(m => m.Index == monsterIndex);
                 if (monster == null)
                 {
-                    Message = $"怪物索引 {monsterIndex} 不存在";
+                    var result = new { success = false, message = $"怪物索引 {monsterIndex} 不存在" };
+                    if (IsAjaxRequest()) return new JsonResult(result);
+
+                    Message = result.message;
                     LoadMonsters();
                     return Page();
                 }
@@ -495,16 +572,28 @@ namespace Server.Web.Pages
                 // 重新计算 Stats
                 monster.StatsChanged();
 
-                Message = $"怪物 [{monsterIndex}] {monsterName} 属性已更新";
                 SEnvir.Log($"[Admin] 修改怪物属性: [{monsterIndex}] {oldName} -> {monsterName}");
+                var success = new
+                {
+                    success = true,
+                    message = $"怪物 [{monsterIndex}] {monsterName} 属性已更新",
+                    data = ToViewModel(monster)
+                };
+                if (IsAjaxRequest()) return new JsonResult(success);
+
+                Message = success.message;
+                LoadMonsters();
+                return Page();
             }
             catch (System.Exception ex)
             {
-                Message = $"修改失败: {ex.Message}";
-            }
+                var result = new { success = false, message = $"修改失败: {ex.Message}" };
+                if (IsAjaxRequest()) return new JsonResult(result);
 
-            LoadMonsters();
-            return Page();
+                Message = result.message;
+                LoadMonsters();
+                return Page();
+            }
         }
 
         private void UpdateMonsterStat(MonsterInfo monster, Stat stat, int value)

@@ -12,14 +12,6 @@
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(Model.Message))
-{
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
-        @Model.Message
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
 <!-- Broadcast -->
 <div class="card mb-4">
     <div class="card-header">
@@ -324,8 +316,39 @@
     </div>
 </div>
 
+@section Scripts {
 <script>
 var isCreateMode = false;
+
+// 全服公告表单 - AJAX提交
+document.addEventListener('DOMContentLoaded', function() {
+    const broadcastForm = document.querySelector('form[asp-page-handler="Broadcast"]');
+    if (broadcastForm) {
+        AjaxForm.bindOne(broadcastForm, {
+            successMessage: '公告已成功发送',
+            resetForm: true
+        });
+    }
+
+    // 传送玩家表单 - AJAX提交
+    const teleportForm = document.querySelector('form[asp-page-handler="Teleport"]');
+    if (teleportForm) {
+        AjaxForm.bindOne(teleportForm, {
+            successMessage: '玩家已成功传送',
+            resetForm: false
+        });
+    }
+
+    // 地图模态框表单 - AJAX提交
+    const mapForm = document.getElementById('mapForm');
+    if (mapForm) {
+        AjaxForm.bindOne(mapForm, {
+            successMessage: '地图信息已保存',
+            closeModal: true,
+            modalId: 'mapModal'
+        });
+    }
+});
 
 function fillTeleport(mapIndex, mapName) {
     document.getElementById('teleportMapIndex').value = mapIndex;
@@ -407,11 +430,12 @@ function editMap(mapIndex) {
                 // Show modal
                 new bootstrap.Modal(document.getElementById('mapModal')).show();
             } else {
-                alert('加载地图信息失败: ' + result.message);
+                ToastManager.error('加载地图信息失败: ' + result.message);
             }
         })
         .catch(error => {
-            alert('请求失败: ' + error);
+            ToastManager.error('请求失败: ' + error.message);
         });
 }
 </script>
+}

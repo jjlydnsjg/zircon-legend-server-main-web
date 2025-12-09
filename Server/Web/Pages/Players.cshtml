@@ -9,7 +9,7 @@
     <div class="col-12 d-flex justify-content-between align-items-center">
         <div>
             <h4 class="mb-0">在线玩家</h4>
-            <small class="text-muted">当前在线 @Model.Players.Count 人</small>
+            <small class="text-muted" id="onlinePlayerCount">当前在线 @Model.Players.Count 人</small>
         </div>
         <div class="d-flex gap-2">
             <form method="get" class="d-flex gap-2">
@@ -49,12 +49,12 @@
                     <tbody>
                         @foreach (var player in Model.Players)
                         {
-                            <tr>
+                            <tr data-player-row="@player.Name">
                                 <td>
                                     <strong>@player.Name</strong>
                                     <br /><small class="text-muted">@player.AccountEmail</small>
                                 </td>
-                                <td><span class="badge bg-primary">Lv.@player.Level</span></td>
+                                <td data-player-level="@player.Name"><span class="badge bg-primary">Lv.@player.Level</span></td>
                                 <td>@player.Class</td>
                                 <td>@player.Gender</td>
                                 <td>@player.MapName</td>
@@ -77,6 +77,13 @@
                                             操作
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#levelUpModal"
+                                                        data-player-name="@player.Name" data-player-level="@player.Level">
+                                                    <i class="bi bi-arrow-up-circle me-2"></i>提升等级
+                                                </button>
+                                            </li>
+                                            <li><hr class="dropdown-divider" /></li>
                                             <li>
                                                 <form method="post" asp-page-handler="Recall" class="d-inline">
                                                     <input type="hidden" name="playerName" value="@player.Name" />
@@ -127,6 +134,48 @@
     </div>
 </div>
 
+<!-- 提升等级模态框 -->
+<div class="modal fade" id="levelUpModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="levelUpForm" method="post" asp-page-handler="LevelUp">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-arrow-up-circle me-2"></i>提升玩家等级</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="playerName" id="levelUpPlayerName" />
+                    <div class="mb-3">
+                        <label class="form-label">玩家名称</label>
+                        <input type="text" class="form-control" id="levelUpPlayerNameDisplay" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">当前等级</label>
+                        <input type="text" class="form-control" id="levelUpCurrentLevel" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">提升等级数 <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" name="levels" id="levelUpLevels"
+                               min="1" max="100" value="1" required />
+                        <small class="text-muted">输入要提升的等级数（1-100）</small>
+                    </div>
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        提升等级后，玩家将立即获得对应等级的属性和技能点。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <span class="text-muted me-auto"><i class="bi bi-shield-check"></i> 需要 Admin 权限</span>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> 确认提升
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @if (!string.IsNullOrEmpty(Model.Message))
 {
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
@@ -145,6 +194,66 @@
 
 @section Scripts {
 <script>
+    // 提升等级模态框数据填充
+    var levelUpModal = document.getElementById('levelUpModal');
+    levelUpModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var playerName = button.getAttribute('data-player-name');
+        var playerLevel = button.getAttribute('data-player-level');
+
+        document.getElementById('levelUpPlayerName').value = playerName;
+        document.getElementById('levelUpPlayerNameDisplay').value = playerName;
+        document.getElementById('levelUpCurrentLevel').value = 'Lv.' + playerLevel;
+        document.getElementById('levelUpLevels').value = 1;
+    });
+
+    // 提升等级表单 AJAX 提交
+    document.addEventListener('DOMContentLoaded', function() {
+        const levelUpForm = document.getElementById('levelUpForm');
+        if (levelUpForm) {
+            AjaxForm.bindOne(levelUpForm, {
+                successMessage: '等级提升成功',
+                closeModal: true,
+                modalId: 'levelUpModal',
+                onSuccess: function(result) {
+                    const playerName = document.getElementById('levelUpPlayerName').value;
+                    const levelCell = document.querySelector(`[data-player-level="${playerName}"] span`);
+                    if (levelCell && result?.newLevel) {
+                        levelCell.textContent = `Lv.${result.newLevel}`;
+                    }
+                }
+            });
+        }
+
+        // 召唤玩家表单 AJAX 提交
+        document.querySelectorAll('form[asp-page-handler="Recall"]').forEach(function(form) {
+            AjaxForm.bindOne(form, {
+                successMessage: '已将玩家召唤到身边'
+            });
+        });
+
+        // 踢下线表单 AJAX 提交
+        document.querySelectorAll('form[asp-page-handler="Kick"]').forEach(function(form) {
+            AjaxForm.bindOne(form, {
+                successMessage: '已将玩家踢下线',
+                onSuccess: function() {
+                    const playerName = new FormData(form).get('playerName');
+                    const row = document.querySelector(`[data-player-row="${playerName}"]`);
+                    if (row) row.remove();
+
+                    const counter = document.getElementById('onlinePlayerCount');
+                    if (counter) {
+                        const match = counter.textContent.match(/当前在线\\s*(\\d+)\\s*人/);
+                        if (match) {
+                            const count = Math.max(0, parseInt(match[1], 10) - 1);
+                            counter.textContent = `当前在线 ${count} 人`;
+                        }
+                    }
+                }
+            });
+        });
+    });
+
     // 自动隐藏 Toast
     setTimeout(function() {
         var toasts = document.querySelectorAll('.toast');

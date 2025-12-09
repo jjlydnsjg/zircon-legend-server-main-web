@@ -17,14 +17,6 @@
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(Model.Message))
-{
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
-        @Model.Message
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
 <!-- Search and Filter -->
 <div class="card mb-4">
     <div class="card-body">
@@ -93,7 +85,7 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="bi bi-box-seam"></i> 物品列表</span>
-        <span class="badge bg-primary">共 @Model.TotalCount 件</span>
+        <span class="badge bg-primary" id="itemsTotalCount">共 @Model.TotalCount 件</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -110,12 +102,12 @@
                         <th>操作</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="itemsTableBody">
                     @if (Model.Items.Any())
                     {
                         @foreach (var item in Model.Items)
                         {
-                            <tr>
+                            <tr data-item-index="@item.Index">
                                 <td><code>@item.Index</code></td>
                                 <td>
                                     <strong class="@GetRarityClass(item.Rarity)">@item.ItemName</strong>
@@ -133,7 +125,7 @@
                                             <i class="bi bi-pencil"></i>
                                         </button>
                                         <button type="button" class="btn btn-outline-success"
-                                                onclick="fillGiveItem(@item.Index, '@item.ItemName')"
+                                                onclick="fillGiveItem(@item.Index)"
                                                 title="给予">
                                             <i class="bi bi-gift"></i>
                                         </button>
@@ -377,8 +369,106 @@
     }
 }
 
+@section Scripts {
 <script>
-function fillGiveItem(itemIndex, itemName) {
+const rarityClassMap = {
+    Common: 'text-secondary',
+    Superior: 'text-success',
+    Elite: 'text-primary'
+};
+
+const rarityBadgeClassMap = {
+    Common: 'bg-secondary',
+    Superior: 'bg-success',
+    Elite: 'bg-primary'
+};
+
+function formatNumber(value) {
+    const num = Number(value || 0);
+    return Number.isFinite(num) ? num.toLocaleString() : '0';
+}
+
+function escapeHtml(value) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(value ?? '').replace(/[&<>"']/g, (m) => map[m]);
+}
+
+function buildItemRow(item) {
+    const rarityClass = rarityClassMap[item.rarity] || '';
+    const rarityBadge = rarityBadgeClassMap[item.rarity] || 'bg-secondary';
+    const name = escapeHtml(item.itemName);
+    const itemType = escapeHtml(item.itemType);
+    const rarity = escapeHtml(item.rarity);
+    return `<tr data-item-index="${item.index}">
+                <td><code>${item.index}</code></td>
+                <td><strong class="${rarityClass}">${name}</strong></td>
+                <td><span class="badge bg-secondary">${itemType}</span></td>
+                <td>${item.requiredAmount}</td>
+                <td>${formatNumber(item.price)}</td>
+                <td>${item.stackSize}</td>
+                <td><span class="badge ${rarityBadge}">${rarity}</span></td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary" onclick="editItem(${item.index})" title="编辑">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="fillGiveItem(${item.index})" title="给予">
+                            <i class="bi bi-gift"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+}
+
+function upsertItemRow(item) {
+    if (!item) return;
+    const tbody = document.getElementById('itemsTableBody');
+    if (!tbody) return;
+
+    const existing = tbody.querySelector(`[data-item-index="${item.index}"]`);
+    const rowHtml = buildItemRow(item);
+    if (existing) {
+        existing.outerHTML = rowHtml;
+    } else {
+        tbody.insertAdjacentHTML('afterbegin', rowHtml);
+        const badge = document.getElementById('itemsTotalCount');
+        if (badge) {
+            const match = badge.textContent.match(/共\\s*(\\d+)\\s*件/);
+            if (match) {
+                const count = Math.max(0, parseInt(match[1], 10) + 1);
+                badge.textContent = `共 ${count} 件`;
+            }
+        }
+    }
+}
+
+// 给予物品表单 - AJAX提交
+document.addEventListener('DOMContentLoaded', function() {
+    const giveItemForm = document.querySelector('form[asp-page-handler="GiveItem"]');
+    if (giveItemForm) {
+        AjaxForm.bindOne(giveItemForm, {
+            successMessage: '物品已成功给予玩家',
+            resetForm: true
+        });
+    }
+
+    // 物品模态框表单 - AJAX提交
+    const itemForm = document.getElementById('itemForm');
+    if (itemForm) {
+        AjaxForm.bindOne(itemForm, {
+            successMessage: '物品信息已保存',
+            closeModal: true,
+            modalId: 'itemModal',
+            onSuccess: function(result) {
+                if (result && result.data) {
+                    upsertItemRow(result.data);
+                }
+            }
+        });
+    }
+});
+
+function fillGiveItem(itemIndex) {
     document.getElementById('giveItemIndex').value = itemIndex;
     document.getElementById('givePlayerName').focus();
 }
@@ -421,11 +511,12 @@ function editItem(itemIndex) {
                 document.getElementById('itemModalTitle').innerHTML = '<i class="bi bi-pencil"></i> 编辑物品 [' + data.index + ']';
                 new bootstrap.Modal(document.getElementById('itemModal')).show();
             } else {
-                alert('加载物品信息失败: ' + result.message);
+                ToastManager.error('加载物品信息失败: ' + result.message);
             }
         })
         .catch(error => {
-            alert('请求失败: ' + error);
+            ToastManager.error('请求失败: ' + error.message);
         });
 }
 </script>
+}

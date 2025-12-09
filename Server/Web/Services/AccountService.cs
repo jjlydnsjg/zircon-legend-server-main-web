@@ -13,11 +13,38 @@ namespace Server.Web.Services
     public class AccountService
     {
         /// <summary>
-        /// 搜索账户
+        /// 获取所有账户（分页）
         /// </summary>
-        public List<AccountViewModel> SearchAccounts(string keyword, int page = 1, int pageSize = 20)
+        public (List<AccountViewModel> Accounts, int TotalCount) GetAllAccounts(int page = 1, int pageSize = 10)
         {
             var accounts = new List<AccountViewModel>();
+            int totalCount = 0;
+
+            try
+            {
+                var allAccounts = SEnvir.AccountInfoList.Binding.ToList();
+                totalCount = allAccounts.Count;
+
+                foreach (var account in allAccounts.Skip((page - 1) * pageSize).Take(pageSize))
+                {
+                    accounts.Add(MapToViewModel(account));
+                }
+            }
+            catch
+            {
+                // 防止数据库访问异常
+            }
+
+            return (accounts, totalCount);
+        }
+
+        /// <summary>
+        /// 搜索账户（分页）
+        /// </summary>
+        public (List<AccountViewModel> Accounts, int TotalCount) SearchAccounts(string keyword, int page = 1, int pageSize = 10)
+        {
+            var accounts = new List<AccountViewModel>();
+            int totalCount = 0;
 
             try
             {
@@ -31,6 +58,8 @@ namespace Server.Web.Services
                         .ToList();
                 }
 
+                totalCount = query.Count;
+
                 foreach (var account in query.Skip((page - 1) * pageSize).Take(pageSize))
                 {
                     accounts.Add(MapToViewModel(account));
@@ -41,7 +70,7 @@ namespace Server.Web.Services
                 // 防止数据库访问异常
             }
 
-            return accounts;
+            return (accounts, totalCount);
         }
 
         /// <summary>

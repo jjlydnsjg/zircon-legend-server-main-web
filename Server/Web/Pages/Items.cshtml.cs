@@ -30,9 +30,33 @@ namespace Server.Web.Pages
 
         public string? Message { get; set; }
 
+        private bool IsAjaxRequest()
+        {
+            if (HttpContext?.Request?.Headers == null) return false;
+
+            return HttpContext.Request.Headers.TryGetValue("X-Requested-With", out var values)
+                   && values.Any(v => v.Equals("XMLHttpRequest", System.StringComparison.OrdinalIgnoreCase));
+        }
+
         public void OnGet()
         {
             LoadItems();
+        }
+
+        private ItemViewModel ToViewModel(ItemInfo item)
+        {
+            return new ItemViewModel
+            {
+                Index = item.Index,
+                ItemName = item.ItemName ?? "Unknown",
+                ItemType = item.ItemType.ToString(),
+                RequiredType = item.RequiredType.ToString(),
+                RequiredAmount = item.RequiredAmount,
+                Price = item.Price,
+                StackSize = item.StackSize,
+                Rarity = item.Rarity.ToString(),
+                Effect = item.Effect.ToString()
+            };
         }
 
         private void LoadItems()
@@ -64,18 +88,7 @@ namespace Server.Web.Pages
                     .ThenBy(i => i.RequiredAmount)
                     .Skip((CurrentPage - 1) * PageSize)
                     .Take(PageSize)
-                    .Select(i => new ItemViewModel
-                    {
-                        Index = i.Index,
-                        ItemName = i.ItemName ?? "Unknown",
-                        ItemType = i.ItemType.ToString(),
-                        RequiredType = i.RequiredType.ToString(),
-                        RequiredAmount = i.RequiredAmount,
-                        Price = i.Price,
-                        StackSize = i.StackSize,
-                        Rarity = i.Rarity.ToString(),
-                        Effect = i.Effect.ToString()
-                    })
+                    .Select(ToViewModel)
                     .ToList();
             }
             catch
@@ -88,6 +101,9 @@ namespace Server.Web.Pages
         {
             if (!HasPermission(AccountIdentity.Admin))
             {
+                if (IsAjaxRequest())
+                    return new JsonResult(new { success = false, message = "权限不足，需要 Admin 权限" });
+
                 Message = "权限不足，需要 Admin 权限";
                 LoadItems();
                 return Page();
@@ -100,6 +116,9 @@ namespace Server.Web.Pages
 
                 if (player == null)
                 {
+                    if (IsAjaxRequest())
+                        return new JsonResult(new { success = false, message = $"玩家 {playerName} 不在线" });
+
                     Message = $"玩家 {playerName} 不在线";
                     LoadItems();
                     return Page();
@@ -108,6 +127,9 @@ namespace Server.Web.Pages
                 var itemInfo = SEnvir.ItemInfoList?.Binding?.FirstOrDefault(i => i.Index == itemIndex);
                 if (itemInfo == null)
                 {
+                    if (IsAjaxRequest())
+                        return new JsonResult(new { success = false, message = $"物品索引 {itemIndex} 不存在" });
+
                     Message = $"物品索引 {itemIndex} 不存在";
                     LoadItems();
                     return Page();
@@ -121,19 +143,31 @@ namespace Server.Web.Pages
                     if (player.CanGainItems(false, new ItemCheck(item, item.Count, item.Flags, item.ExpireTime)))
                     {
                         player.GainItem(item);
-                        Message = $"已给予 {playerName} {count}x {itemInfo.ItemName}";
                         SEnvir.Log($"[Admin] 给予物品: {playerName} <- {count}x {itemInfo.ItemName}");
+                        if (IsAjaxRequest())
+                            return new JsonResult(new { success = true, message = $"已给予 {playerName} {count}x {itemInfo.ItemName}" });
+
+                        Message = $"已给予 {playerName} {count}x {itemInfo.ItemName}";
                     }
                     else
                     {
+                        if (IsAjaxRequest())
+                            return new JsonResult(new { success = false, message = $"{playerName} 背包已满" });
+
                         Message = $"{playerName} 背包已满";
                     }
                 }
             }
             catch (System.Exception ex)
             {
+                if (IsAjaxRequest())
+                    return new JsonResult(new { success = false, message = $"操作失败: {ex.Message}" });
+
                 Message = $"操作失败: {ex.Message}";
             }
+
+            if (IsAjaxRequest())
+                return new JsonResult(new { success = false, message = "未知错误" });
 
             LoadItems();
             return Page();
@@ -201,6 +235,9 @@ namespace Server.Web.Pages
         {
             if (!HasPermission(AccountIdentity.SuperAdmin))
             {
+                if (IsAjaxRequest())
+                    return new JsonResult(new { success = false, message = "权限不足，需要 SuperAdmin 权限" });
+
                 Message = "权限不足，需要 SuperAdmin 权限";
                 LoadItems();
                 return Page();
@@ -210,6 +247,9 @@ namespace Server.Web.Pages
             {
                 if (string.IsNullOrWhiteSpace(itemName))
                 {
+                    if (IsAjaxRequest())
+                        return new JsonResult(new { success = false, message = "物品名称不能为空" });
+
                     Message = "物品名称不能为空";
                     LoadItems();
                     return Page();
@@ -218,6 +258,9 @@ namespace Server.Web.Pages
                 var newItem = SEnvir.ItemInfoList?.CreateNewObject();
                 if (newItem == null)
                 {
+                    if (IsAjaxRequest())
+                        return new JsonResult(new { success = false, message = "创建物品失败" });
+
                     Message = "创建物品失败";
                     LoadItems();
                     return Page();
@@ -238,13 +281,29 @@ namespace Server.Web.Pages
                 newItem.StackSize = stackSize > 0 ? stackSize : 1;
                 newItem.Rarity = (Rarity)rarity;
 
-                Message = $"物品 [{newItem.Index}] {itemName} 创建成功";
                 SEnvir.Log($"[Admin] 新建物品: [{newItem.Index}] {itemName}");
+                if (IsAjaxRequest())
+                {
+                    return new JsonResult(new
+                    {
+                        success = true,
+                        message = $"物品 [{newItem.Index}] {itemName} 创建成功",
+                        data = ToViewModel(newItem)
+                    });
+                }
+
+                Message = $"物品 [{newItem.Index}] {itemName} 创建成功";
             }
             catch (System.Exception ex)
             {
+                if (IsAjaxRequest())
+                    return new JsonResult(new { success = false, message = $"创建失败: {ex.Message}" });
+
                 Message = $"创建失败: {ex.Message}";
             }
+
+            if (IsAjaxRequest())
+                return new JsonResult(new { success = false, message = "未知错误" });
 
             LoadItems();
             return Page();
@@ -270,6 +329,9 @@ namespace Server.Web.Pages
         {
             if (!HasPermission(AccountIdentity.SuperAdmin))
             {
+                if (IsAjaxRequest())
+                    return new JsonResult(new { success = false, message = "权限不足，需要 SuperAdmin 权限" });
+
                 Message = "权限不足，需要 SuperAdmin 权限";
                 LoadItems();
                 return Page();
@@ -280,6 +342,9 @@ namespace Server.Web.Pages
                 var item = SEnvir.ItemInfoList?.Binding?.FirstOrDefault(i => i.Index == itemIndex);
                 if (item == null)
                 {
+                    if (IsAjaxRequest())
+                        return new JsonResult(new { success = false, message = $"物品索引 {itemIndex} 不存在" });
+
                     Message = $"物品索引 {itemIndex} 不存在";
                     LoadItems();
                     return Page();
@@ -302,13 +367,29 @@ namespace Server.Web.Pages
                 item.StackSize = stackSize > 0 ? stackSize : 1;
                 item.Rarity = (Rarity)rarity;
 
-                Message = $"物品 [{itemIndex}] {itemName} 已更新";
                 SEnvir.Log($"[Admin] 修改物品: [{itemIndex}] {oldName} -> {itemName}");
+                if (IsAjaxRequest())
+                {
+                    return new JsonResult(new
+                    {
+                        success = true,
+                        message = $"物品 [{itemIndex}] {itemName} 已更新",
+                        data = ToViewModel(item)
+                    });
+                }
+
+                Message = $"物品 [{itemIndex}] {itemName} 已更新";
             }
             catch (System.Exception ex)
             {
+                if (IsAjaxRequest())
+                    return new JsonResult(new { success = false, message = $"修改失败: {ex.Message}" });
+
                 Message = $"修改失败: {ex.Message}";
             }
+
+            if (IsAjaxRequest())
+                return new JsonResult(new { success = false, message = "未知错误" });
 
             LoadItems();
             return Page();

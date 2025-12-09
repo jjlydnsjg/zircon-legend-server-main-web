@@ -12,14 +12,6 @@
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(Model.Message))
-{
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
-        @Model.Message
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
 <!-- Quick Actions -->
 <div class="row mb-4">
     <div class="col-md-6">
@@ -393,6 +385,56 @@
 
 @section Scripts {
     <script>
+        // AJAX表单绑定
+        document.addEventListener('DOMContentLoaded', function() {
+            // 给予技能表单
+            const giveSkillForm = document.querySelector('form[asp-page-handler="GiveSkill"]');
+            if (giveSkillForm) {
+                AjaxForm.bindOne(giveSkillForm, {
+                    successMessage: '技能已成功给予玩家',
+                    resetForm: true
+                });
+            }
+
+            // 全职业技能表单
+            const giveAllForm = document.querySelector('form[asp-page-handler="GiveAllSkills"]');
+            if (giveAllForm) {
+                giveAllForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    if (confirm('确定要给该玩家添加所有职业技能吗?')) {
+                        AjaxForm.submit(giveAllForm, {
+                            successMessage: '所有职业技能已成功给予玩家',
+                            resetForm: true
+                        });
+                    }
+                });
+            }
+
+            // 移除技能表单
+            const removeSkillForm = document.querySelector('form[asp-page-handler="RemoveSkill"]');
+            if (removeSkillForm) {
+                removeSkillForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    if (confirm('确定要移除该玩家的技能吗?')) {
+                        AjaxForm.submit(removeSkillForm, {
+                            successMessage: '技能已成功移除',
+                            resetForm: true
+                        });
+                    }
+                });
+            }
+
+            // 编辑技能模态框表单
+            const editMagicForm = document.querySelector('form[asp-page-handler="UpdateMagic"]');
+            if (editMagicForm) {
+                AjaxForm.bindOne(editMagicForm, {
+                    successMessage: '技能属性已保存',
+                    closeModal: true,
+                    modalId: 'editModal'
+                });
+            }
+        });
+
         // Edit modal data binding
         var editModal = document.getElementById('editModal');
         editModal.addEventListener('show.bs.modal', function (event) {
