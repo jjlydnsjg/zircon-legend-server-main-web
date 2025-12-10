@@ -21,11 +21,11 @@
 <div class="card mb-4">
     <div class="card-body">
         <form method="get" class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">搜索物品</label>
                 <input type="text" class="form-control" name="Keyword" value="@Model.Keyword" placeholder="物品名称或ID">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">物品类型</label>
                 <select class="form-select" name="ItemType">
                     <option value="">全部类型</option>
@@ -42,6 +42,25 @@
                     <option value="Consumable" selected="@(Model.ItemType == "Consumable")">消耗品</option>
                     <option value="Ore" selected="@(Model.ItemType == "Ore")">矿石</option>
                     <option value="Meat" selected="@(Model.ItemType == "Meat")">肉类</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">排序方式</label>
+                <select class="form-select" name="SortBy">
+                    <option value="">默认排序</option>
+                    <option value="price" selected="@(Model.SortBy == "price")">按价格</option>
+                    <option value="name" selected="@(Model.SortBy == "name")">按名称</option>
+                    <option value="level" selected="@(Model.SortBy == "level")">按等级需求</option>
+                    <option value="index" selected="@(Model.SortBy == "index")">按ID</option>
+                    <option value="rarity" selected="@(Model.SortBy == "rarity")">按品质</option>
+                    <option value="stacksize" selected="@(Model.SortBy == "stacksize")">按堆叠数</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">排序顺序</label>
+                <select class="form-select" name="SortOrder">
+                    <option value="asc" selected="@(Model.SortOrder != "desc")">升序 ↑</option>
+                    <option value="desc" selected="@(Model.SortOrder == "desc")">降序 ↓</option>
                 </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
@@ -92,13 +111,25 @@
             <table class="table table-hover table-striped mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th>ID</th>
-                        <th>名称</th>
+                        <th class="sortable-header" onclick="sortBy('index')" style="cursor:pointer" title="点击排序">
+                            ID @Html.Raw(GetSortIcon("index"))
+                        </th>
+                        <th class="sortable-header" onclick="sortBy('name')" style="cursor:pointer" title="点击排序">
+                            名称 @Html.Raw(GetSortIcon("name"))
+                        </th>
                         <th>类型</th>
-                        <th>等级需求</th>
-                        <th>价格</th>
-                        <th>堆叠</th>
-                        <th>品质</th>
+                        <th class="sortable-header" onclick="sortBy('level')" style="cursor:pointer" title="点击排序">
+                            等级需求 @Html.Raw(GetSortIcon("level"))
+                        </th>
+                        <th class="sortable-header" onclick="sortBy('price')" style="cursor:pointer" title="点击排序">
+                            价格 @Html.Raw(GetSortIcon("price"))
+                        </th>
+                        <th class="sortable-header" onclick="sortBy('stacksize')" style="cursor:pointer" title="点击排序">
+                            堆叠 @Html.Raw(GetSortIcon("stacksize"))
+                        </th>
+                        <th class="sortable-header" onclick="sortBy('rarity')" style="cursor:pointer" title="点击排序">
+                            品质 @Html.Raw(GetSortIcon("rarity"))
+                        </th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -154,13 +185,13 @@
                 <ul class="pagination pagination-sm mb-0 justify-content-center">
                     @* 首页 *@
                     <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
-                        <a class="page-link" href="?Keyword=@Model.Keyword&ItemType=@Model.ItemType&CurrentPage=1" title="首页">
+                        <a class="page-link" href="@GetPageUrl(1)" title="首页">
                             <i class="bi bi-chevron-double-left"></i>
                         </a>
                     </li>
                     @* 上一页 *@
                     <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
-                        <a class="page-link" href="?Keyword=@Model.Keyword&ItemType=@Model.ItemType&CurrentPage=@(Model.CurrentPage - 1)" title="上一页">
+                        <a class="page-link" href="@GetPageUrl(Model.CurrentPage - 1)" title="上一页">
                             <i class="bi bi-chevron-left"></i>
                         </a>
                     </li>
@@ -168,7 +199,7 @@
                     @if (Model.CurrentPage > 3)
                     {
                         <li class="page-item">
-                            <a class="page-link" href="?Keyword=@Model.Keyword&ItemType=@Model.ItemType&CurrentPage=1">1</a>
+                            <a class="page-link" href="@GetPageUrl(1)">1</a>
                         </li>
                         @if (Model.CurrentPage > 4)
                         {
@@ -179,7 +210,7 @@
                     @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
                     {
                         <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
-                            <a class="page-link" href="?Keyword=@Model.Keyword&ItemType=@Model.ItemType&CurrentPage=@i">@i</a>
+                            <a class="page-link" href="@GetPageUrl(i)">@i</a>
                         </li>
                     }
                     @* 最后一页（如果不在显示范围内） *@
@@ -190,18 +221,18 @@
                             <li class="page-item disabled"><span class="page-link">...</span></li>
                         }
                         <li class="page-item">
-                            <a class="page-link" href="?Keyword=@Model.Keyword&ItemType=@Model.ItemType&CurrentPage=@Model.TotalPages">@Model.TotalPages</a>
+                            <a class="page-link" href="@GetPageUrl(Model.TotalPages)">@Model.TotalPages</a>
                         </li>
                     }
                     @* 下一页 *@
                     <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
-                        <a class="page-link" href="?Keyword=@Model.Keyword&ItemType=@Model.ItemType&CurrentPage=@(Model.CurrentPage + 1)" title="下一页">
+                        <a class="page-link" href="@GetPageUrl(Model.CurrentPage + 1)" title="下一页">
                             <i class="bi bi-chevron-right"></i>
                         </a>
                     </li>
                     @* 末页 *@
                     <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
-                        <a class="page-link" href="?Keyword=@Model.Keyword&ItemType=@Model.ItemType&CurrentPage=@Model.TotalPages" title="末页">
+                        <a class="page-link" href="@GetPageUrl(Model.TotalPages)" title="末页">
                             <i class="bi bi-chevron-double-right"></i>
                         </a>
                     </li>
@@ -367,10 +398,47 @@
             _ => "bg-secondary"
         };
     }
+
+    string GetSortIcon(string field)
+    {
+        if (Model.SortBy?.ToLower() != field.ToLower())
+            return "<i class=\"bi bi-arrow-down-up text-muted opacity-50\"></i>";
+
+        return Model.SortOrder == "desc"
+            ? "<i class=\"bi bi-sort-down text-warning\"></i>"
+            : "<i class=\"bi bi-sort-up text-warning\"></i>";
+    }
+
+    string GetPageUrl(int page)
+    {
+        return $"?Keyword={Model.Keyword}&ItemType={Model.ItemType}&SortBy={Model.SortBy}&SortOrder={Model.SortOrder}&CurrentPage={page}";
+    }
 }
 
 @section Scripts {
 <script>
+// 当前排序状态
+const currentSortBy = '@Model.SortBy';
+const currentSortOrder = '@Model.SortOrder';
+
+// 点击表头排序
+function sortBy(field) {
+    const params = new URLSearchParams(window.location.search);
+
+    // 如果点击同一列，切换排序方向
+    if (params.get('SortBy') === field) {
+        params.set('SortOrder', params.get('SortOrder') === 'desc' ? 'asc' : 'desc');
+    } else {
+        params.set('SortBy', field);
+        params.set('SortOrder', 'asc');
+    }
+
+    // 重置到第一页
+    params.set('CurrentPage', '1');
+
+    window.location.search = params.toString();
+}
+
 const rarityClassMap = {
     Common: 'text-secondary',
     Superior: 'text-success',

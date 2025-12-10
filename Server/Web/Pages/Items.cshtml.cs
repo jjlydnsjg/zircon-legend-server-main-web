@@ -23,6 +23,12 @@ namespace Server.Web.Pages
         public string? ItemType { get; set; }
 
         [BindProperty(SupportsGet = true)]
+        public string? SortBy { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public string? SortOrder { get; set; }
+
+        [BindProperty(SupportsGet = true)]
         public int CurrentPage { get; set; } = 1;
 
         public int PageSize { get; set; } = 50;
@@ -83,9 +89,21 @@ namespace Server.Web.Pages
 
                 TotalCount = query.Count();
 
+                // Sorting
+                bool descending = string.Equals(SortOrder, "desc", System.StringComparison.OrdinalIgnoreCase);
+
+                query = SortBy?.ToLower() switch
+                {
+                    "price" => descending ? query.OrderByDescending(i => i.Price) : query.OrderBy(i => i.Price),
+                    "name" => descending ? query.OrderByDescending(i => i.ItemName) : query.OrderBy(i => i.ItemName),
+                    "level" => descending ? query.OrderByDescending(i => i.RequiredAmount) : query.OrderBy(i => i.RequiredAmount),
+                    "index" => descending ? query.OrderByDescending(i => i.Index) : query.OrderBy(i => i.Index),
+                    "rarity" => descending ? query.OrderByDescending(i => i.Rarity) : query.OrderBy(i => i.Rarity),
+                    "stacksize" => descending ? query.OrderByDescending(i => i.StackSize) : query.OrderBy(i => i.StackSize),
+                    _ => query.OrderBy(i => i.ItemType).ThenBy(i => i.RequiredAmount) // default sorting
+                };
+
                 Items = query
-                    .OrderBy(i => i.ItemType)
-                    .ThenBy(i => i.RequiredAmount)
                     .Skip((CurrentPage - 1) * PageSize)
                     .Take(PageSize)
                     .Select(ToViewModel)

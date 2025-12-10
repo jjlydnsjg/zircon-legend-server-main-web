@@ -212,7 +212,7 @@
 
 <!-- Edit NPC Modal -->
 <div class="modal fade" id="npcEditModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title"><i class="bi bi-pencil"></i> 编辑NPC</h5>
@@ -221,19 +221,42 @@
             <form id="npcEditForm">
                 <div class="modal-body">
                     <input type="hidden" name="npcIndex" id="editNpcIndex">
-                    <div class="mb-3">
-                        <label class="form-label">NPC名称</label>
-                        <input type="text" class="form-control" name="npcName" id="editNpcName" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">NPC名称</label>
+                            <input type="text" class="form-control" name="npcName" id="editNpcName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">图像编号</label>
+                            <input type="number" class="form-control" name="image" id="editNpcImage" min="0">
+                        </div>
                     </div>
+                    <hr>
+                    <h6 class="text-muted"><i class="bi bi-geo-alt"></i> 位置设置</h6>
                     <div class="mb-3">
-                        <label class="form-label">图像编号</label>
-                        <input type="number" class="form-control" name="image" id="editNpcImage" min="0">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">区域</label>
-                        <select class="form-select" name="regionIndex" id="editNpcRegion">
-                            <option value="0">-- 不设置区域 --</option>
+                        <label class="form-label">选择地图</label>
+                        <select class="form-select" name="mapIndex" id="editNpcMap" onchange="onEditMapChange()">
+                            <option value="0">-- 请先选择地图 --</option>
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">选择区域 <span class="text-muted">(可选，不选则使用自定义坐标)</span></label>
+                        <select class="form-select" name="regionIndex" id="editNpcRegion" onchange="onEditRegionChange()">
+                            <option value="0">-- 不设置区域（使用自定义坐标） --</option>
+                        </select>
+                    </div>
+                    <div class="row" id="editCoordinateRow">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">X 坐标</label>
+                            <input type="number" class="form-control" name="locationX" id="editNpcX" min="0" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Y 坐标</label>
+                            <input type="number" class="form-control" name="locationY" id="editNpcY" min="0" value="0">
+                        </div>
+                    </div>
+                    <div class="alert alert-info mb-0" id="editLocationHint">
+                        <i class="bi bi-info-circle"></i> <span id="editLocationHintText">选择地图后可以设置NPC位置</span>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -519,10 +542,118 @@ let checkTypesCache = null;
 let operatorsCache = null;
 let actionTypesCache = null;
 let currentPageIndex = null;
+let mapsCache = null;
+let currentEditMapInfo = null;
 
 function escapeHtml(value) {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
     return String(value ?? '').replace(/[&<>"']/g, (m) => map[m]);
+}
+
+// 加载所有地图列表
+async function loadAllMaps() {
+    if (mapsCache) return mapsCache;
+    const res = await fetch('/Npcs?handler=AllMaps');
+    const result = await res.json();
+    if (result.success) mapsCache = result.data;
+    return mapsCache || [];
+}
+
+// 加载指定地图的区域列表
+async function loadMapRegions(mapIndex) {
+    const res = await fetch(`/Npcs?handler=MapRegions&mapIndex=${mapIndex}`);
+    const result = await res.json();
+    return result.success ? result.data : [];
+}
+
+// 获取地图信息
+async function getMapInfo(mapIndex) {
+    const res = await fetch(`/Npcs?handler=MapInfo&mapIndex=${mapIndex}`);
+    const result = await res.json();
+    return result.success ? result.data : null;
+}
+
+// 填充地图下拉框
+async function fillMapSelect(selectId, selectedValue = 0) {
+    const maps = await loadAllMaps();
+    const select = document.getElementById(selectId);
+    const target = Number(selectedValue);
+    const options = ['<option value="0">-- 请先选择地图 --</option>'];
+    maps.forEach(m => {
+        const selected = Number(m.index) === target ? ' selected' : '';
+        options.push(`<option value="${m.index}"${selected}>${escapeHtml(m.name)}</option>`);
+    });
+    select.innerHTML = options.join('');
+}
+
+// 填充指定地图的区域下拉框
+async function fillMapRegionSelect(selectId, mapIndex, selectedValue = 0) {
+    const regions = await loadMapRegions(mapIndex);
+    const select = document.getElementById(selectId);
+    const target = Number(selectedValue);
+    const options = ['<option value="0">-- 不设置区域（使用自定义坐标） --</option>'];
+    regions.forEach(r => {
+        const selected = Number(r.index) === target ? ' selected' : '';
+        const info = r.pointCount > 0 ? ` (${r.pointCount}点)` : '';
+        options.push(`<option value="${r.index}"${selected}>${escapeHtml(r.description)}${info}</option>`);
+    });
+    select.innerHTML = options.join('');
+}
+
+// 编辑模态框：地图变更
+async function onEditMapChange() {
+    const mapIndex = parseInt(document.getElementById('editNpcMap').value) || 0;
+    const regionSelect = document.getElementById('editNpcRegion');
+    const coordRow = document.getElementById('editCoordinateRow');
+    const hint = document.getElementById('editLocationHintText');
+
+    if (mapIndex === 0) {
+        regionSelect.innerHTML = '<option value="0">-- 请先选择地图 --</option>';
+        regionSelect.disabled = true;
+        coordRow.style.display = 'none';
+        hint.textContent = '请先选择地图';
+        currentEditMapInfo = null;
+        return;
+    }
+
+    // 加载地图区域
+    await fillMapRegionSelect('editNpcRegion', mapIndex);
+    regionSelect.disabled = false;
+
+    // 获取地图信息
+    currentEditMapInfo = await getMapInfo(mapIndex);
+    if (currentEditMapInfo) {
+        hint.textContent = `地图尺寸: ${currentEditMapInfo.width} x ${currentEditMapInfo.height}`;
+    }
+
+    // 显示坐标输入
+    coordRow.style.display = 'flex';
+    onEditRegionChange();
+}
+
+// 编辑模态框：区域变更
+function onEditRegionChange() {
+    const regionIndex = parseInt(document.getElementById('editNpcRegion').value) || 0;
+    const coordRow = document.getElementById('editCoordinateRow');
+    const hint = document.getElementById('editLocationHintText');
+    const xInput = document.getElementById('editNpcX');
+    const yInput = document.getElementById('editNpcY');
+
+    if (regionIndex > 0) {
+        // 选择了区域，隐藏自定义坐标
+        coordRow.style.display = 'none';
+        hint.textContent = 'NPC将在选定区域内随机位置生成';
+    } else {
+        // 未选择区域，显示自定义坐标
+        coordRow.style.display = 'flex';
+        if (currentEditMapInfo) {
+            hint.textContent = `地图尺寸: ${currentEditMapInfo.width} x ${currentEditMapInfo.height}，请输入有效坐标`;
+            xInput.max = currentEditMapInfo.width - 1;
+            yInput.max = currentEditMapInfo.height - 1;
+        } else {
+            hint.textContent = '请输入NPC坐标';
+        }
+    }
 }
 
 // 加载区域列表
@@ -749,16 +880,42 @@ function viewNpcDetail(npcIndex) {
 
 // 编辑NPC
 async function editNpc(npcIndex) {
-    await fillRegionSelect('editNpcRegion');
+    // 加载地图列表
+    await fillMapSelect('editNpcMap');
+
     fetch(`/Npcs?handler=NpcDetail&npcIndex=${npcIndex}`)
         .then(r => r.json())
-        .then(result => {
+        .then(async result => {
             if (result.success) {
                 const d = result.data;
                 document.getElementById('editNpcIndex').value = d.index;
                 document.getElementById('editNpcName').value = d.npcName;
                 document.getElementById('editNpcImage').value = d.image;
-                document.getElementById('editNpcRegion').value = d.regionIndex;
+
+                // 设置地图
+                const mapIndex = d.mapIndex || 0;
+                document.getElementById('editNpcMap').value = mapIndex;
+
+                // 加载该地图的区域
+                if (mapIndex > 0) {
+                    await fillMapRegionSelect('editNpcRegion', mapIndex, d.regionIndex);
+                    document.getElementById('editNpcRegion').disabled = false;
+
+                    // 获取地图信息
+                    currentEditMapInfo = await getMapInfo(mapIndex);
+                } else {
+                    document.getElementById('editNpcRegion').innerHTML = '<option value="0">-- 请先选择地图 --</option>';
+                    document.getElementById('editNpcRegion').disabled = true;
+                    currentEditMapInfo = null;
+                }
+
+                // 设置坐标
+                document.getElementById('editNpcX').value = d.locationX || 0;
+                document.getElementById('editNpcY').value = d.locationY || 0;
+
+                // 更新UI状态
+                onEditRegionChange();
+
                 new bootstrap.Modal(document.getElementById('npcEditModal')).show();
             }
         });
