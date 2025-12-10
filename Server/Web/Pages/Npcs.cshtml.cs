@@ -212,20 +212,33 @@ namespace Server.Web.Pages
                 else if (mapIndex > 0 && (locationX > 0 || locationY > 0))
                 {
                     // 选择了地图和坐标，创建一个专属的单点区域
-                    var map = SEnvir.MapInfoList?.Binding?.FirstOrDefault(m => m.Index == mapIndex);
-                    if (map != null)
+                    var mapInfo = SEnvir.MapInfoList?.Binding?.FirstOrDefault(m => m.Index == mapIndex);
+                    if (mapInfo != null)
                     {
                         var newRegion = SEnvir.MapRegionList?.CreateNewObject();
                         if (newRegion != null)
                         {
-                            newRegion.Map = map;
+                            newRegion.Map = mapInfo;
                             newRegion.Description = $"NPC_{npcName}_{locationX}_{locationY}";
                             newRegion.Size = 0;
-                            // 设置单点区域
+                            // 设置单点区域 - PointRegion 是持久化存储的
                             newRegion.PointRegion = new System.Drawing.Point[] { new System.Drawing.Point(locationX, locationY) };
-                            newRegion.PointList = new List<System.Drawing.Point> { new System.Drawing.Point(locationX, locationY) };
+
+                            // 关键：调用 CreatePoints 来初始化运行时的 PointList
+                            // PointList 是运行时字段，不会持久化，需要从 PointRegion 生成
+                            var runtimeMap = SEnvir.Maps.Values.FirstOrDefault(m => m.Info?.Index == mapIndex);
+                            if (runtimeMap != null)
+                            {
+                                newRegion.CreatePoints(runtimeMap.Width);
+                            }
+                            else
+                            {
+                                // 如果地图实例不存在，手动初始化 PointList
+                                newRegion.PointList = new List<System.Drawing.Point> { new System.Drawing.Point(locationX, locationY) };
+                            }
+
                             newNpc.Region = newRegion;
-                            SEnvir.Log($"[Admin] 为NPC [{newNpc.Index}] 创建专属区域: {newRegion.Description}");
+                            SEnvir.Log($"[Admin] 为NPC [{newNpc.Index}] 创建专属区域: {newRegion.Description}, PointList.Count={newRegion.PointList?.Count ?? 0}");
                         }
                     }
                 }
