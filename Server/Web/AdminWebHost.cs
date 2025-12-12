@@ -2,13 +2,17 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 using Server.Envir;
 using Server.Web.Services;
 using System;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
 
 namespace Server.Web
 {
@@ -76,6 +80,34 @@ namespace Server.Web
                     options.RootDirectory = "/Web/Pages";
                 });
 
+                // 配置响应压缩
+                builder.Services.AddResponseCompression(options =>
+                {
+                    options.EnableForHttps = true;
+                    options.Providers.Add<BrotliCompressionProvider>();
+                    options.Providers.Add<GzipCompressionProvider>();
+                    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+                    {
+                        "text/css",
+                        "application/javascript",
+                        "text/javascript",
+                        "application/json",
+                        "image/svg+xml",
+                        "font/woff2",
+                        "font/woff"
+                    });
+                });
+
+                builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+                {
+                    options.Level = CompressionLevel.Fastest;
+                });
+
+                builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+                {
+                    options.Level = CompressionLevel.Optimal;
+                });
+
                 // 配置 Cookie 认证
                 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                     .AddCookie(options =>
@@ -99,7 +131,10 @@ namespace Server.Web
 
                 var app = builder.Build();
 
-                // 配置静态文件
+                // 启用响应压缩（必须在静态文件之前）
+                app.UseResponseCompression();
+
+                // 配置静态文件（带缓存头）
                 var webRootPath = Path.Combine(contentRoot, "Web", "wwwroot");
                 SEnvir.Log($"[Admin] 静态文件路径: {webRootPath}, 存在: {Directory.Exists(webRootPath)}");
                 if (Directory.Exists(webRootPath))
@@ -107,7 +142,34 @@ namespace Server.Web
                     app.UseStaticFiles(new StaticFileOptions
                     {
                         FileProvider = new PhysicalFileProvider(webRootPath),
-                        RequestPath = ""
+                        RequestPath = "",
+                        OnPrepareResponse = ctx =>
+                        {
+                            var path = ctx.File.Name.ToLowerInvariant();
+
+                            // CSS/JS/字体缓存 7 天
+                            if (path.EndsWith(".css") || path.EndsWith(".js") ||
+                                path.EndsWith(".woff2") || path.EndsWith(".woff") ||
+                                path.EndsWith(".ttf") || path.EndsWith(".eot"))
+                            {
+                                ctx.Context.Response.Headers[HeaderNames.CacheControl] =
+                                    "public, max-age=604800, immutable";
+                            }
+                            // 图片缓存 30 天
+                            else if (path.EndsWith(".png") || path.EndsWith(".jpg") ||
+                                     path.EndsWith(".gif") || path.EndsWith(".ico") ||
+                                     path.EndsWith(".svg"))
+                            {
+                                ctx.Context.Response.Headers[HeaderNames.CacheControl] =
+                                    "public, max-age=2592000";
+                            }
+                            // 其他资源缓存 1 小时
+                            else
+                            {
+                                ctx.Context.Response.Headers[HeaderNames.CacheControl] =
+                                    "public, max-age=3600";
+                            }
+                        }
                     });
                 }
 

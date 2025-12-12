@@ -29,19 +29,34 @@
                 <label class="form-label">物品类型</label>
                 <select class="form-select" name="ItemType">
                     <option value="">全部类型</option>
-                    <option value="Nothing" selected="@(Model.ItemType == "Nothing")">Nothing</option>
-                    <option value="Weapon" selected="@(Model.ItemType == "Weapon")">武器</option>
-                    <option value="Armour" selected="@(Model.ItemType == "Armour")">防具</option>
-                    <option value="Helmet" selected="@(Model.ItemType == "Helmet")">头盔</option>
-                    <option value="Necklace" selected="@(Model.ItemType == "Necklace")">项链</option>
-                    <option value="Bracelet" selected="@(Model.ItemType == "Bracelet")">手镯</option>
-                    <option value="Ring" selected="@(Model.ItemType == "Ring")">戒指</option>
-                    <option value="Shoes" selected="@(Model.ItemType == "Shoes")">鞋子</option>
-                    <option value="Book" selected="@(Model.ItemType == "Book")">书籍</option>
-                    <option value="Potion" selected="@(Model.ItemType == "Potion")">药水</option>
-                    <option value="Consumable" selected="@(Model.ItemType == "Consumable")">消耗品</option>
-                    <option value="Ore" selected="@(Model.ItemType == "Ore")">矿石</option>
-                    <option value="Meat" selected="@(Model.ItemType == "Meat")">肉类</option>
+                    <option value="Nothing" selected="@(Model.ItemType == "Nothing")">Nothing (无)</option>
+                    <option value="Consumable" selected="@(Model.ItemType == "Consumable")">Consumable (消耗品)</option>
+                    <option value="Weapon" selected="@(Model.ItemType == "Weapon")">Weapon (武器)</option>
+                    <option value="Armour" selected="@(Model.ItemType == "Armour")">Armour (盔甲)</option>
+                    <option value="Torch" selected="@(Model.ItemType == "Torch")">Torch (火炬)</option>
+                    <option value="Helmet" selected="@(Model.ItemType == "Helmet")">Helmet (头盔)</option>
+                    <option value="Necklace" selected="@(Model.ItemType == "Necklace")">Necklace (项链)</option>
+                    <option value="Bracelet" selected="@(Model.ItemType == "Bracelet")">Bracelet (手镯)</option>
+                    <option value="Ring" selected="@(Model.ItemType == "Ring")">Ring (戒指)</option>
+                    <option value="Shoes" selected="@(Model.ItemType == "Shoes")">Shoes (鞋)</option>
+                    <option value="Poison" selected="@(Model.ItemType == "Poison")">Poison (毒)</option>
+                    <option value="Amulet" selected="@(Model.ItemType == "Amulet")">Amulet (护身符)</option>
+                    <option value="Meat" selected="@(Model.ItemType == "Meat")">Meat (肉)</option>
+                    <option value="Ore" selected="@(Model.ItemType == "Ore")">Ore (矿)</option>
+                    <option value="Book" selected="@(Model.ItemType == "Book")">Book (书)</option>
+                    <option value="Scroll" selected="@(Model.ItemType == "Scroll")">Scroll (卷轴)</option>
+                    <option value="DarkStone" selected="@(Model.ItemType == "DarkStone")">DarkStone (暗石)</option>
+                    <option value="RefineSpecial" selected="@(Model.ItemType == "RefineSpecial")">RefineSpecial (特殊精炼)</option>
+                    <option value="HorseArmour" selected="@(Model.ItemType == "HorseArmour")">HorseArmour (马甲)</option>
+                    <option value="Flower" selected="@(Model.ItemType == "Flower")">Flower (鲜花)</option>
+                    <option value="CompanionFood" selected="@(Model.ItemType == "CompanionFood")">CompanionFood (伙伴食物)</option>
+                    <option value="CompanionBag" selected="@(Model.ItemType == "CompanionBag")">CompanionBag (伙伴背包)</option>
+                    <option value="CompanionHead" selected="@(Model.ItemType == "CompanionHead")">CompanionHead (伙伴头盔)</option>
+                    <option value="CompanionBack" selected="@(Model.ItemType == "CompanionBack")">CompanionBack (伙伴背甲)</option>
+                    <option value="System" selected="@(Model.ItemType == "System")">System (系统)</option>
+                    <option value="ItemPart" selected="@(Model.ItemType == "ItemPart")">ItemPart (套装组件)</option>
+                    <option value="Emblem" selected="@(Model.ItemType == "Emblem")">Emblem (徽章)</option>
+                    <option value="Shield" selected="@(Model.ItemType == "Shield")">Shield (盾牌)</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -267,19 +282,34 @@
                         <div class="col-md-4">
                             <label class="form-label">物品类型</label>
                             <select class="form-select" name="itemType" id="editItemType">
-                                <option value="0">Nothing</option>
-                                <option value="1">Weapon (武器)</option>
-                                <option value="2">Armour (防具)</option>
-                                <option value="3">Helmet (头盔)</option>
-                                <option value="4">Necklace (项链)</option>
-                                <option value="5">Bracelet (手镯)</option>
-                                <option value="6">Ring (戒指)</option>
-                                <option value="7">Shoes (鞋子)</option>
-                                <option value="8">Book (书籍)</option>
-                                <option value="9">Potion (药水)</option>
-                                <option value="10">Ore (矿石)</option>
-                                <option value="11">Meat (肉类)</option>
-                                <option value="12">Consumable (消耗品)</option>
+                                <option value="0">Nothing (无)</option>
+                                <option value="1">Consumable (消耗品)</option>
+                                <option value="2">Weapon (武器)</option>
+                                <option value="3">Armour (盔甲)</option>
+                                <option value="4">Torch (火炬)</option>
+                                <option value="5">Helmet (头盔)</option>
+                                <option value="6">Necklace (项链)</option>
+                                <option value="7">Bracelet (手镯)</option>
+                                <option value="8">Ring (戒指)</option>
+                                <option value="9">Shoes (鞋)</option>
+                                <option value="10">Poison (毒)</option>
+                                <option value="11">Amulet (护身符)</option>
+                                <option value="12">Meat (肉)</option>
+                                <option value="13">Ore (矿)</option>
+                                <option value="14">Book (书)</option>
+                                <option value="15">Scroll (卷轴)</option>
+                                <option value="16">DarkStone (暗石)</option>
+                                <option value="17">RefineSpecial (特殊精炼)</option>
+                                <option value="18">HorseArmour (马甲)</option>
+                                <option value="19">Flower (鲜花)</option>
+                                <option value="20">CompanionFood (伙伴食物)</option>
+                                <option value="21">CompanionBag (伙伴背包)</option>
+                                <option value="22">CompanionHead (伙伴头盔)</option>
+                                <option value="23">CompanionBack (伙伴背甲)</option>
+                                <option value="24">System (系统)</option>
+                                <option value="25">ItemPart (套装组件)</option>
+                                <option value="26">Emblem (徽章)</option>
+                                <option value="27">Shield (盾牌)</option>
                             </select>
                         </div>
                         <div class="col-md-4">
