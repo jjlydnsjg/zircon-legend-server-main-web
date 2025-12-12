@@ -174,10 +174,15 @@ namespace Server.Web.Pages
                     MinimumLevel = mapInfo.MinimumLevel,
                     MaximumLevel = mapInfo.MaximumLevel,
                     MonsterHealth = mapInfo.MonsterHealth,
+                    MaxMonsterHealth = mapInfo.MaxMonsterHealth,
                     MonsterDamage = mapInfo.MonsterDamage,
+                    MaxMonsterDamage = mapInfo.MaxMonsterDamage,
                     DropRate = mapInfo.DropRate,
+                    MaxDropRate = mapInfo.MaxDropRate,
                     ExperienceRate = mapInfo.ExperienceRate,
+                    MaxExperienceRate = mapInfo.MaxExperienceRate,
                     GoldRate = mapInfo.GoldRate,
+                    MaxGoldRate = mapInfo.MaxGoldRate,
                     SkillDelay = mapInfo.SkillDelay
                 };
 
@@ -205,10 +210,15 @@ namespace Server.Web.Pages
             int minimumLevel,
             int maximumLevel,
             int monsterHealth,
+            int maxMonsterHealth,
             int monsterDamage,
+            int maxMonsterDamage,
             int dropRate,
+            int maxDropRate,
             int experienceRate,
+            int maxExperienceRate,
             int goldRate,
+            int maxGoldRate,
             int skillDelay)
         {
             if (!HasPermission(AccountIdentity.SuperAdmin))
@@ -249,10 +259,15 @@ namespace Server.Web.Pages
                 newMap.MinimumLevel = minimumLevel;
                 newMap.MaximumLevel = maximumLevel;
                 newMap.MonsterHealth = monsterHealth;
+                newMap.MaxMonsterHealth = maxMonsterHealth;
                 newMap.MonsterDamage = monsterDamage;
+                newMap.MaxMonsterDamage = maxMonsterDamage;
                 newMap.DropRate = dropRate;
+                newMap.MaxDropRate = maxDropRate;
                 newMap.ExperienceRate = experienceRate;
+                newMap.MaxExperienceRate = maxExperienceRate;
                 newMap.GoldRate = goldRate;
+                newMap.MaxGoldRate = maxGoldRate;
                 newMap.SkillDelay = skillDelay;
 
                 Message = $"地图 [{newMap.Index}] {description} 创建成功（需重启服务器加载地图文件）";
@@ -284,10 +299,15 @@ namespace Server.Web.Pages
             int minimumLevel,
             int maximumLevel,
             int monsterHealth,
+            int maxMonsterHealth,
             int monsterDamage,
+            int maxMonsterDamage,
             int dropRate,
+            int maxDropRate,
             int experienceRate,
+            int maxExperienceRate,
             int goldRate,
+            int maxGoldRate,
             int skillDelay)
         {
             if (!HasPermission(AccountIdentity.SuperAdmin))
@@ -323,10 +343,15 @@ namespace Server.Web.Pages
                 mapInfo.MinimumLevel = minimumLevel;
                 mapInfo.MaximumLevel = maximumLevel;
                 mapInfo.MonsterHealth = monsterHealth;
+                mapInfo.MaxMonsterHealth = maxMonsterHealth;
                 mapInfo.MonsterDamage = monsterDamage;
+                mapInfo.MaxMonsterDamage = maxMonsterDamage;
                 mapInfo.DropRate = dropRate;
+                mapInfo.MaxDropRate = maxDropRate;
                 mapInfo.ExperienceRate = experienceRate;
+                mapInfo.MaxExperienceRate = maxExperienceRate;
                 mapInfo.GoldRate = goldRate;
+                mapInfo.MaxGoldRate = maxGoldRate;
                 mapInfo.SkillDelay = skillDelay;
 
                 Message = $"地图 [{mapIndex}] {description} 已更新";
@@ -385,10 +410,15 @@ namespace Server.Web.Pages
         public int MinimumLevel { get; set; }
         public int MaximumLevel { get; set; }
         public int MonsterHealth { get; set; }
+        public int MaxMonsterHealth { get; set; }
         public int MonsterDamage { get; set; }
+        public int MaxMonsterDamage { get; set; }
         public int DropRate { get; set; }
+        public int MaxDropRate { get; set; }
         public int ExperienceRate { get; set; }
+        public int MaxExperienceRate { get; set; }
         public int GoldRate { get; set; }
+        public int MaxGoldRate { get; set; }
         public int SkillDelay { get; set; }
     }
 }

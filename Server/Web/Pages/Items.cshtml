@@ -369,16 +369,16 @@
                     <input type="hidden" name="stats" id="editStats">
 
                     <!-- 常用属性快捷输入 -->
+                    <!-- 基础防御 -->
                     <div class="row g-2 mb-3">
-                        <!-- 基础防御 -->
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <div class="card border-secondary">
                                 <div class="card-header py-1 bg-secondary text-white small">
                                     <i class="bi bi-shield"></i> 基础防御
                                 </div>
                                 <div class="card-body py-2">
                                     <div class="row g-2">
-                                        <div class="col-6">
+                                        <div class="col-md-6">
                                             <label class="form-label small mb-1">物防 (AC)</label>
                                             <div class="input-group input-group-sm">
                                                 <input type="number" class="form-control stat-input" data-stat="3" id="statMinAC" placeholder="最小">
@@ -386,7 +386,7 @@
                                                 <input type="number" class="form-control stat-input" data-stat="4" id="statMaxAC" placeholder="最大">
                                             </div>
                                         </div>
-                                        <div class="col-6">
+                                        <div class="col-md-6">
                                             <label class="form-label small mb-1">魔防 (MR)</label>
                                             <div class="input-group input-group-sm">
                                                 <input type="number" class="form-control stat-input" data-stat="5" id="statMinMR" placeholder="最小">
@@ -398,15 +398,18 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- 攻击力 -->
-                        <div class="col-md-6">
+                    </div>
+
+                    <!-- 攻击力 -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-12">
                             <div class="card border-danger">
                                 <div class="card-header py-1 bg-danger text-white small">
                                     <i class="bi bi-lightning"></i> 攻击力
                                 </div>
                                 <div class="card-body py-2">
                                     <div class="row g-2">
-                                        <div class="col-4">
+                                        <div class="col-md-4">
                                             <label class="form-label small mb-1">攻击 (DC)</label>
                                             <div class="input-group input-group-sm">
                                                 <input type="number" class="form-control stat-input" data-stat="7" id="statMinDC" placeholder="最小">
@@ -414,7 +417,7 @@
                                                 <input type="number" class="form-control stat-input" data-stat="8" id="statMaxDC" placeholder="最大">
                                             </div>
                                         </div>
-                                        <div class="col-4">
+                                        <div class="col-md-4">
                                             <label class="form-label small mb-1">魔法 (MC)</label>
                                             <div class="input-group input-group-sm">
                                                 <input type="number" class="form-control stat-input" data-stat="9" id="statMinMC" placeholder="最小">
@@ -422,7 +425,7 @@
                                                 <input type="number" class="form-control stat-input" data-stat="10" id="statMaxMC" placeholder="最大">
                                             </div>
                                         </div>
-                                        <div class="col-4">
+                                        <div class="col-md-4">
                                             <label class="form-label small mb-1">道术 (SC)</label>
                                             <div class="input-group input-group-sm">
                                                 <input type="number" class="form-control stat-input" data-stat="11" id="statMinSC" placeholder="最小">

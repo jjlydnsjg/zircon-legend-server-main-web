@@ -278,29 +278,51 @@
                     </div>
 
                     <!-- Rates -->
-                    <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-bar-chart"></i> 倍率设置 (0=使用全局配置)</h6>
+                    <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-bar-chart"></i> 倍率设置 (0=使用全局配置，最小值≤最大值时随机取值)</h6>
                     <div class="row g-3 mb-3">
                         <div class="col-md-3">
                             <label class="form-label">怪物血量(%)</label>
                             <input type="number" class="form-control" name="monsterHealth" id="editMonsterHealth" min="0" max="9999999">
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label">最大血量(%)</label>
+                            <input type="number" class="form-control" name="maxMonsterHealth" id="editMaxMonsterHealth" min="0" max="9999999">
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">怪物伤害(%)</label>
                             <input type="number" class="form-control" name="monsterDamage" id="editMonsterDamage" min="0" max="9999999">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">最大伤害(%)</label>
+                            <input type="number" class="form-control" name="maxMonsterDamage" id="editMaxMonsterDamage" min="0" max="9999999">
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">经验倍率(%)</label>
+                            <input type="number" class="form-control" name="experienceRate" id="editExperienceRate" min="0" max="9999999">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">最大经验(%)</label>
+                            <input type="number" class="form-control" name="maxExperienceRate" id="editMaxExperienceRate" min="0" max="9999999">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">掉落倍率(%)</label>
                             <input type="number" class="form-control" name="dropRate" id="editDropRate" min="0" max="9999999">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">经验倍率(%)</label>
-                            <input type="number" class="form-control" name="experienceRate" id="editExperienceRate" min="0" max="9999999">
+                            <label class="form-label">最大掉落(%)</label>
+                            <input type="number" class="form-control" name="maxDropRate" id="editMaxDropRate" min="0" max="9999999">
                         </div>
                     </div>
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">金币倍率(%)</label>
                             <input type="number" class="form-control" name="goldRate" id="editGoldRate" min="0" max="9999999">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">最大金币(%)</label>
+                            <input type="number" class="form-control" name="maxGoldRate" id="editMaxGoldRate" min="0" max="9999999">
                         </div>
                     </div>
                 </div>
@@ -376,10 +398,15 @@ function createMap() {
     document.getElementById('editCanMarriageRecall').checked = true;
     document.getElementById('editAllowRecall').checked = true;
     document.getElementById('editMonsterHealth').value = 0;
+    document.getElementById('editMaxMonsterHealth').value = 0;
     document.getElementById('editMonsterDamage').value = 0;
+    document.getElementById('editMaxMonsterDamage').value = 0;
     document.getElementById('editDropRate').value = 0;
+    document.getElementById('editMaxDropRate').value = 0;
     document.getElementById('editExperienceRate').value = 0;
+    document.getElementById('editMaxExperienceRate').value = 0;
     document.getElementById('editGoldRate').value = 0;
+    document.getElementById('editMaxGoldRate').value = 0;
 
     // Update modal style
     document.getElementById('mapModalHeader').className = 'modal-header bg-success text-white';
@@ -422,10 +449,15 @@ function editMap(mapIndex) {
                 document.getElementById('editCanMarriageRecall').checked = data.canMarriageRecall;
                 document.getElementById('editAllowRecall').checked = data.allowRecall;
                 document.getElementById('editMonsterHealth').value = data.monsterHealth;
+                document.getElementById('editMaxMonsterHealth').value = data.maxMonsterHealth;
                 document.getElementById('editMonsterDamage').value = data.monsterDamage;
+                document.getElementById('editMaxMonsterDamage').value = data.maxMonsterDamage;
                 document.getElementById('editDropRate').value = data.dropRate;
+                document.getElementById('editMaxDropRate').value = data.maxDropRate;
                 document.getElementById('editExperienceRate').value = data.experienceRate;
+                document.getElementById('editMaxExperienceRate').value = data.maxExperienceRate;
                 document.getElementById('editGoldRate').value = data.goldRate;
+                document.getElementById('editMaxGoldRate').value = data.maxGoldRate;
 
                 // Show modal
                 new bootstrap.Modal(document.getElementById('mapModal')).show();
