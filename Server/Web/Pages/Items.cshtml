@@ -706,6 +706,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // 物品模态框表单 - AJAX提交
     const itemForm = document.getElementById('itemForm');
     if (itemForm) {
+        // 重要：在 AjaxForm 提交之前先收集属性数据
+        itemForm.addEventListener('submit', function(e) {
+            collectAllStats();
+        }, { capture: true }); // 使用捕获阶段，确保先于 AjaxForm 执行
+
         AjaxForm.bindOne(itemForm, {
             successMessage: '物品信息已保存',
             closeModal: true,
@@ -996,15 +1001,5 @@ function collectAllStats() {
     // 更新隐藏字段
     document.getElementById('editStats').value = JSON.stringify(stats);
 }
-
-// 表单提交前收集属性
-document.addEventListener('DOMContentLoaded', function() {
-    const itemForm = document.getElementById('itemForm');
-    if (itemForm) {
-        itemForm.addEventListener('submit', function(e) {
-            collectAllStats();
-        });
-    }
-});
 </script>
 }
