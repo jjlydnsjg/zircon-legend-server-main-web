@@ -481,7 +481,9 @@ namespace Server.Web.Pages
 
             try
             {
-                var statInputs = System.Text.Json.JsonSerializer.Deserialize<List<StatInput>>(statsJson);
+                var statInputs = System.Text.Json.JsonSerializer.Deserialize<List<StatInput>>(
+                    statsJson,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (statInputs == null) return;
 
                 // 构建要保存的属性字典
@@ -512,6 +514,8 @@ namespace Server.Web.Pages
                     {
                         // 更新现有属性
                         existingStat.Amount = kvp.Value;
+                        if (existingStat.Item != item)
+                            existingStat.Item = item;
                     }
                     else
                     {
@@ -521,8 +525,8 @@ namespace Server.Web.Pages
                         {
                             newStat.Stat = kvp.Key;
                             newStat.Amount = kvp.Value;
-                            // 设置关联会自动将 newStat 添加到 item.ItemStats (MirDB 关联机制)
-                            newStat.Item = item;
+                            // 通过父集合添加，确保关联与回显一致
+                            item.ItemStats.Add(newStat);
                         }
                     }
                 }
@@ -532,7 +536,8 @@ namespace Server.Web.Pages
             }
             catch (System.Exception ex)
             {
-                SEnvir.Log($"[Admin] 更新物品属性失败: {ex.Message}");
+                var preview = statsJson == null ? "" : statsJson[..System.Math.Min(200, statsJson.Length)];
+                SEnvir.Log($"[Admin] 更新物品属性失败: {ex.Message}, StatsJsonPreview={preview}");
             }
         }
 

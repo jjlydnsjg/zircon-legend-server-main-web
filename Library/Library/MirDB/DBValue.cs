@@ -247,6 +247,9 @@ namespace MirDB
         }
         public void WriteValue(object value, BinaryWriter writer)
         {
+            if (value != null && Property?.PropertyType.IsEnum == true)
+                value = Convert.ChangeType(value, PropertyType);
+
             TypeWrite[PropertyType](value, writer);
         }
 
