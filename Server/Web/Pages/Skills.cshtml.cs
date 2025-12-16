@@ -15,8 +15,6 @@ namespace Server.Web.Pages
     public class SkillsModel : PageModel
     {
         public List<MagicViewModel> Magics { get; set; } = new();
-        public List<CustomSummonViewModel> CustomSummonSkills { get; set; } = new();
-        public List<MonsterListViewModel> MonsterList { get; set; } = new();
         public int TotalCount { get; set; }
 
         [BindProperty(SupportsGet = true)]
@@ -39,8 +37,6 @@ namespace Server.Web.Pages
         public void OnGet()
         {
             LoadMagics();
-            LoadCustomSummonSkills();
-            LoadMonsterList();
         }
 
         private void LoadMagics()
@@ -103,60 +99,6 @@ namespace Server.Web.Pages
                         Experience3 = m.Experience3,
                         Delay = m.Delay,
                         Description = m.Description ?? ""
-                    })
-                    .ToList();
-            }
-            catch
-            {
-                // Prevent enumeration errors
-            }
-        }
-
-        private void LoadCustomSummonSkills()
-        {
-            try
-            {
-                if (SEnvir.MagicInfoList?.Binding == null) return;
-
-                // 筛选 Magic == SummonSkeleton 且 SummonMonsterIndex > 0 的记录（自定义召唤技能）
-                CustomSummonSkills = SEnvir.MagicInfoList.Binding
-                    .Where(m => m.Magic == MagicType.SummonSkeleton && m.SummonMonsterIndex > 0)
-                    .OrderBy(m => m.Index)
-                    .Select(m => new CustomSummonViewModel
-                    {
-                        Index = m.Index,
-                        Name = m.Name ?? "Unknown",
-                        SummonMonsterIndex = m.SummonMonsterIndex,
-                        MonsterName = SEnvir.MonsterInfoList?.Binding?.FirstOrDefault(x => x.Index == m.SummonMonsterIndex)?.MonsterName ?? "未知怪物",
-                        MaxSummonCount = m.MaxSummonCount > 0 ? m.MaxSummonCount : 2,
-                        AmuletCost = m.AmuletCost > 0 ? m.AmuletCost : 1,
-                        Class = m.Class.ToString(),
-                        NeedLevel1 = m.NeedLevel1,
-                        Description = m.Description ?? "",
-                        School = m.School.ToString()
-                    })
-                    .ToList();
-            }
-            catch
-            {
-                // Prevent enumeration errors
-            }
-        }
-
-        private void LoadMonsterList()
-        {
-            try
-            {
-                if (SEnvir.MonsterInfoList?.Binding == null) return;
-
-                MonsterList = SEnvir.MonsterInfoList.Binding
-                    .OrderBy(m => m.Level)
-                    .ThenBy(m => m.Index)
-                    .Select(m => new MonsterListViewModel
-                    {
-                        Index = m.Index,
-                        MonsterName = m.MonsterName ?? "Unknown",
-                        Level = m.Level
                     })
                     .ToList();
             }
@@ -431,278 +373,6 @@ namespace Server.Web.Pages
             return Page();
         }
 
-        public IActionResult OnPostCreateCustomSummon(
-            string name,
-            string mirClass,
-            int monsterIndex,
-            int maxCount,
-            int amuletCost,
-            int needLevel,
-            string description,
-            string school)
-        {
-            if (!HasPermission(AccountIdentity.SuperAdmin))
-            {
-                Message = "权限不足，需要 SuperAdmin 权限";
-                LoadMagics();
-                LoadCustomSummonSkills();
-                LoadMonsterList();
-                return Page();
-            }
-
-            try
-            {
-                // 验证怪物是否存在
-                var monster = SEnvir.MonsterInfoList?.Binding?.FirstOrDefault(m => m.Index == monsterIndex);
-                if (monster == null)
-                {
-                    Message = $"怪物索引 {monsterIndex} 不存在";
-                    LoadMagics();
-                    LoadCustomSummonSkills();
-                    LoadMonsterList();
-                    return Page();
-                }
-
-                // 解析职业
-                if (!Enum.TryParse<MirClass>(mirClass, out var parsedClass))
-                {
-                    Message = $"无效的职业: {mirClass}";
-                    LoadMagics();
-                    LoadCustomSummonSkills();
-                    LoadMonsterList();
-                    return Page();
-                }
-
-                // 创建新的 MagicInfo 记录
-                var newMagic = SEnvir.MagicInfoList.CreateNewObject();
-                newMagic.Name = name;
-                newMagic.Magic = MagicType.SummonSkeleton;  // 复用召唤骷髅类型
-                newMagic.Class = parsedClass;
-                newMagic.School = Enum.TryParse<MagicSchool>(school, out var parsedSchool) ? parsedSchool : MagicSchool.None;
-                newMagic.Mode = MagicMode.Free;
-                newMagic.SummonMonsterIndex = monsterIndex;
-                newMagic.MaxSummonCount = maxCount > 0 ? maxCount : 2;
-                newMagic.AmuletCost = amuletCost > 0 ? amuletCost : 1;
-                newMagic.NeedLevel1 = needLevel > 0 ? needLevel : 1;
-                newMagic.Description = description ?? "";
-
-                // 复制召唤骷髅的其他默认属性
-                var skeletonMagic = SEnvir.MagicInfoList.Binding.FirstOrDefault(m =>
-                    m.Magic == MagicType.SummonSkeleton && m.SummonMonsterIndex == 0);
-                if (skeletonMagic != null)
-                {
-                    newMagic.Icon = skeletonMagic.Icon;
-                    newMagic.BaseCost = skeletonMagic.BaseCost;
-                    newMagic.LevelCost = skeletonMagic.LevelCost;
-                    newMagic.Delay = skeletonMagic.Delay;
-                    // 复制升级所需经验值
-                    newMagic.Experience1 = skeletonMagic.Experience1;
-                    newMagic.Experience2 = skeletonMagic.Experience2;
-                    newMagic.Experience3 = skeletonMagic.Experience3;
-                    // 复制升级所需等级（NeedLevel1 由参数设置，复制2和3）
-                    newMagic.NeedLevel2 = skeletonMagic.NeedLevel2;
-                    newMagic.NeedLevel3 = skeletonMagic.NeedLevel3;
-                }
-
-                // 自动创建对应的技能书物品
-                string skillBookMessage = "";
-                var skillBook = SEnvir.ItemInfoList?.CreateNewObject();
-                if (skillBook != null)
-                {
-                    skillBook.ItemName = $"{name}秘籍";
-                    skillBook.ItemType = ItemType.Book;
-                    skillBook.Shape = newMagic.Index;  // 关联技能
-
-                    // 参考召唤骷髅技能书的参数
-                    var skeletonBook = skeletonMagic != null
-                        ? SEnvir.ItemInfoList.Binding.FirstOrDefault(
-                            i => i.ItemType == ItemType.Book && i.Shape == skeletonMagic.Index)
-                        : null;
-
-                    if (skeletonBook != null)
-                    {
-                        // 复制召唤骷髅技能书的参数
-                        skillBook.Price = skeletonBook.Price;
-                        skillBook.Durability = skeletonBook.Durability;
-                        skillBook.Image = skeletonBook.Image;
-                        skillBook.Weight = skeletonBook.Weight;
-                        skillBook.StackSize = skeletonBook.StackSize;
-                        skillBook.Rarity = skeletonBook.Rarity;
-                    }
-                    else
-                    {
-                        // 默认值
-                        skillBook.Price = 50000;
-                        skillBook.Durability = 80;
-                        skillBook.Image = 1;
-                        skillBook.Weight = 10;
-                        skillBook.StackSize = 1;
-                    }
-
-                    // 职业限制与技能一致
-                    skillBook.RequiredClass = MirClassToRequiredClass(parsedClass);
-                    skillBook.RequiredAmount = needLevel > 0 ? needLevel : 1;  // 学习等级要求
-
-                    SEnvir.Log($"[Admin] 自动创建技能书: [{skillBook.Index}] {skillBook.ItemName}");
-                    skillBookMessage = $"，技能书 [{skillBook.ItemName}] 已自动创建";
-                }
-
-                Message = $"自定义召唤技能 [{name}] 创建成功，召唤怪物: {monster.MonsterName}{skillBookMessage}";
-                SEnvir.Log($"[Admin] 创建自定义召唤技能: {name} -> 召唤 {monster.MonsterName} (Index: {newMagic.Index})");
-            }
-            catch (Exception ex)
-            {
-                Message = $"创建失败: {ex.Message}";
-            }
-
-            LoadMagics();
-            LoadCustomSummonSkills();
-            LoadMonsterList();
-            return Page();
-        }
-
-        public IActionResult OnPostUpdateCustomSummon(
-            int magicIndex,
-            string name,
-            int monsterIndex,
-            int maxCount,
-            int amuletCost,
-            int needLevel,
-            string description,
-            string school)
-        {
-            if (!HasPermission(AccountIdentity.SuperAdmin))
-            {
-                Message = "权限不足，需要 SuperAdmin 权限";
-                LoadMagics();
-                LoadCustomSummonSkills();
-                LoadMonsterList();
-                return Page();
-            }
-
-            try
-            {
-                var magicInfo = SEnvir.MagicInfoList?.Binding?.FirstOrDefault(m => m.Index == magicIndex);
-                if (magicInfo == null)
-                {
-                    Message = $"技能 ID {magicIndex} 不存在";
-                    LoadMagics();
-                    LoadCustomSummonSkills();
-                    LoadMonsterList();
-                    return Page();
-                }
-
-                // 验证是否为自定义召唤技能
-                if (magicInfo.Magic != MagicType.SummonSkeleton || magicInfo.SummonMonsterIndex <= 0)
-                {
-                    Message = $"技能 ID {magicIndex} 不是自定义召唤技能";
-                    LoadMagics();
-                    LoadCustomSummonSkills();
-                    LoadMonsterList();
-                    return Page();
-                }
-
-                // 验证怪物是否存在
-                var monster = SEnvir.MonsterInfoList?.Binding?.FirstOrDefault(m => m.Index == monsterIndex);
-                if (monster == null)
-                {
-                    Message = $"怪物索引 {monsterIndex} 不存在";
-                    LoadMagics();
-                    LoadCustomSummonSkills();
-                    LoadMonsterList();
-                    return Page();
-                }
-
-                // 更新属性
-                magicInfo.Name = name;
-                magicInfo.SummonMonsterIndex = monsterIndex;
-                magicInfo.MaxSummonCount = maxCount > 0 ? maxCount : 2;
-                magicInfo.AmuletCost = amuletCost > 0 ? amuletCost : 1;
-                magicInfo.NeedLevel1 = needLevel > 0 ? needLevel : 1;
-                magicInfo.Description = description ?? "";
-                if (Enum.TryParse<MagicSchool>(school, out var parsedSchool))
-                {
-                    magicInfo.School = parsedSchool;
-                }
-
-                Message = $"自定义召唤技能 [{name}] 更新成功";
-                SEnvir.Log($"[Admin] 更新自定义召唤技能: {name} (ID: {magicIndex})");
-            }
-            catch (Exception ex)
-            {
-                Message = $"更新失败: {ex.Message}";
-            }
-
-            LoadMagics();
-            LoadCustomSummonSkills();
-            LoadMonsterList();
-            return Page();
-        }
-
-        public IActionResult OnPostDeleteCustomSummon(int magicIndex)
-        {
-            if (!HasPermission(AccountIdentity.SuperAdmin))
-            {
-                Message = "权限不足，需要 SuperAdmin 权限";
-                LoadMagics();
-                LoadCustomSummonSkills();
-                LoadMonsterList();
-                return Page();
-            }
-
-            try
-            {
-                var magicInfo = SEnvir.MagicInfoList?.Binding?.FirstOrDefault(m => m.Index == magicIndex);
-                if (magicInfo == null)
-                {
-                    Message = $"技能 ID {magicIndex} 不存在";
-                    LoadMagics();
-                    LoadCustomSummonSkills();
-                    LoadMonsterList();
-                    return Page();
-                }
-
-                // 验证是否为自定义召唤技能
-                if (magicInfo.Magic != MagicType.SummonSkeleton || magicInfo.SummonMonsterIndex <= 0)
-                {
-                    Message = $"技能 ID {magicIndex} 不是自定义召唤技能，无法删除";
-                    LoadMagics();
-                    LoadCustomSummonSkills();
-                    LoadMonsterList();
-                    return Page();
-                }
-
-                var skillName = magicInfo.Name;
-
-                // 删除技能前，先删除对应的技能书
-                string skillBookMessage = "";
-                var skillBook = SEnvir.ItemInfoList?.Binding?.FirstOrDefault(
-                    i => i.ItemType == ItemType.Book && i.Shape == magicIndex);
-                if (skillBook != null)
-                {
-                    var bookName = skillBook.ItemName;
-                    SEnvir.Log($"[Admin] 删除关联技能书: [{skillBook.Index}] {bookName}");
-                    skillBook.Delete();
-                    skillBookMessage = $"，关联技能书 [{bookName}] 已删除";
-                }
-
-                // 从数据库删除技能
-                magicInfo.Delete();
-
-                Message = $"自定义召唤技能 [{skillName}] 已删除{skillBookMessage}";
-                SEnvir.Log($"[Admin] 删除自定义召唤技能: {skillName} (ID: {magicIndex})");
-            }
-            catch (Exception ex)
-            {
-                Message = $"删除失败: {ex.Message}";
-            }
-
-            LoadMagics();
-            LoadCustomSummonSkills();
-            LoadMonsterList();
-            return Page();
-        }
-
         private bool HasPermission(AccountIdentity required)
         {
             var permissionClaim = User.FindFirst("Permission")?.Value;
@@ -713,18 +383,6 @@ namespace Server.Web.Pages
                 return permValue >= (int)required;
             }
             return false;
-        }
-
-        private RequiredClass MirClassToRequiredClass(MirClass mirClass)
-        {
-            return mirClass switch
-            {
-                MirClass.Warrior => RequiredClass.Warrior,
-                MirClass.Wizard => RequiredClass.Wizard,
-                MirClass.Taoist => RequiredClass.Taoist,
-                MirClass.Assassin => RequiredClass.Assassin,
-                _ => RequiredClass.All
-            };
         }
     }
 
@@ -751,26 +409,5 @@ namespace Server.Web.Pages
         public int Experience3 { get; set; }
         public int Delay { get; set; }
         public string Description { get; set; } = "";
-    }
-
-    public class CustomSummonViewModel
-    {
-        public int Index { get; set; }
-        public string Name { get; set; } = "";
-        public int SummonMonsterIndex { get; set; }
-        public string MonsterName { get; set; } = "";
-        public int MaxSummonCount { get; set; }
-        public int AmuletCost { get; set; }
-        public string Class { get; set; } = "";
-        public int NeedLevel1 { get; set; }
-        public string Description { get; set; } = "";
-        public string School { get; set; } = "";
-    }
-
-    public class MonsterListViewModel
-    {
-        public int Index { get; set; }
-        public string MonsterName { get; set; } = "";
-        public int Level { get; set; }
     }
 }
