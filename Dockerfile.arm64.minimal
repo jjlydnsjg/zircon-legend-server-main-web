@@ -1,0 +1,51 @@
+# 多架构 Dockerfile (最小依赖版本) - 支持 ARM64 和 x64
+# 说明: 此版本不安装 libgdiplus，如果服务器不使用 System.Drawing 功能则可用
+#
+# 使用方法:
+#   ARM64: docker buildx build --platform linux/arm64 -t zircon:arm64 -f Dockerfile.arm64.minimal .
+#   x64:   docker buildx build --platform linux/amd64 -t zircon:amd64 -f Dockerfile.arm64.minimal .
+
+# Stage 1: 构建阶段
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG TARGETARCH
+WORKDIR /src
+
+COPY ["Server/Server.csproj", "Server/"]
+COPY . .
+
+RUN sed -i 's|<ProjectReference Include="\.\.\\Library\\Library\\Library\.csproj" />|<Reference Include="Library"><HintPath>../Debug/Library/Library.dll</HintPath></Reference>|' /src/Server/Server.csproj
+RUN sed -i '/<Target Name="PostBuild"/,/<\/Target>/d' /src/Server/Server.csproj
+
+RUN case "$TARGETARCH" in \
+        "arm64") RID="linux-arm64" ;; \
+        "amd64") RID="linux-x64" ;; \
+        *) RID="linux-x64" ;; \
+    esac && echo "RID=$RID" > /tmp/rid.env
+
+WORKDIR /src/Server
+RUN . /tmp/rid.env && dotnet restore "Server.csproj" -r $RID
+RUN . /tmp/rid.env && dotnet publish "Server.csproj" \
+    -c Release \
+    -r $RID \
+    -o /app/publish \
+    --self-contained true \
+    --no-restore \
+    -p:PublishSingleFile=false \
+    -p:PublishTrimmed=false
+
+# Stage 2: 运行时阶段 (最小化)
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
+WORKDIR /zircon
+
+# 仅安装 ICU（国际化支持，.NET 必需）
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libicu-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/publish .
+RUN chmod +x /zircon/Server
+
+EXPOSE 7000 7080
+VOLUME ["/zircon/datas"]
+CMD ["/zircon/Server"]

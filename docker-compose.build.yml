@@ -1,0 +1,25 @@
+# docker-compose.build.yml - 本地构建配置
+# 用法:
+#   构建: docker-compose -f docker-compose.build.yml build
+#   运行: docker-compose -f docker-compose.build.yml up -d
+
+services:
+  zircon:
+    container_name: zircon
+    build:
+      context: .
+      dockerfile: Dockerfile.arm64
+      # 如需指定平台，取消注释以下行：
+      # platforms:
+      #   - linux/arm64
+      #   - linux/amd64
+    image: zircon:local
+    ports:
+      - "7000:7000"
+      - "7080:7080"
+    restart: unless-stopped
+    user: "0:0"
+    volumes:
+      - ./datas:/zircon/datas
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro

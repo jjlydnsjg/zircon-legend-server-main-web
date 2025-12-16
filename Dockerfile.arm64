@@ -1,0 +1,78 @@
+# 多架构 Dockerfile - 支持 ARM64 和 x64
+# 使用方法:
+#   ARM64: docker buildx build --platform linux/arm64 -t zircon:arm64 -f Dockerfile.arm64 .
+#   x64:   docker buildx build --platform linux/amd64 -t zircon:amd64 -f Dockerfile.arm64 .
+#   多架构: docker buildx build --platform linux/amd64,linux/arm64 -t zircon:latest -f Dockerfile.arm64 --push .
+
+# Stage 1: 构建阶段
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG TARGETARCH
+WORKDIR /src
+
+# 复制项目文件
+COPY ["Server/Server.csproj", "Server/"]
+
+# 复制所有源代码（包括预编译的 Library.dll）
+COPY . .
+
+# 临时修改项目引用：从 ProjectReference 改为 Reference（使用预编译 DLL）
+RUN sed -i 's|<ProjectReference Include="\.\.\\Library\\Library\\Library\.csproj" />|<Reference Include="Library"><HintPath>../Debug/Library/Library.dll</HintPath></Reference>|' /src/Server/Server.csproj
+
+# 禁用 Windows 特定的 PostBuild 事件
+RUN sed -i '/<Target Name="PostBuild"/,/<\/Target>/d' /src/Server/Server.csproj
+
+# 根据目标架构设置 RID
+RUN case "$TARGETARCH" in \
+        "arm64") RID="linux-arm64" ;; \
+        "amd64") RID="linux-x64" ;; \
+        *) RID="linux-x64" ;; \
+    esac && echo "RID=$RID" > /tmp/rid.env
+
+# 还原依赖
+WORKDIR /src/Server
+RUN . /tmp/rid.env && dotnet restore "Server.csproj" -r $RID
+
+# 构建并发布应用
+RUN . /tmp/rid.env && dotnet publish "Server.csproj" \
+    -c Release \
+    -r $RID \
+    -o /app/publish \
+    --self-contained true \
+    --no-restore \
+    -p:PublishSingleFile=false \
+    -p:PublishTrimmed=false
+
+# Stage 2: 运行时阶段
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
+WORKDIR /zircon
+
+# 安装必要的依赖（libgdiplus 用于 System.Drawing 支持）
+# 使用重试机制和更宽松的错误处理
+RUN set -ex && \
+    for i in 1 2 3; do \
+        apt-get update && break || sleep 5; \
+    done && \
+    apt-get install -y --no-install-recommends \
+        libicu-dev \
+        libgdiplus \
+        libc6-dev \
+    || apt-get install -y --no-install-recommends \
+        libicu-dev \
+        libc6-dev \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# 从构建阶段复制发布文件
+COPY --from=build /app/publish .
+
+# 设置执行权限
+RUN chmod +x /zircon/Server
+
+# 暴露端口（游戏端口 7000，管理后台 7080）
+EXPOSE 7000 7080
+
+# 挂载数据目录
+VOLUME ["/zircon/datas"]
+
+# 启动服务器
+CMD ["/zircon/Server"]

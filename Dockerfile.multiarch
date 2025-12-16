@@ -1,0 +1,56 @@
+# 多架构 Dockerfile (交叉编译优化版)
+# 特点: 构建阶段使用原生架构，最大限度减少 QEMU 模拟
+#
+# 使用方法:
+#   ARM64: docker buildx build --platform linux/arm64 -t zircon:arm64 -f Dockerfile.multiarch .
+#   x64:   docker buildx build --platform linux/amd64 -t zircon:amd64 -f Dockerfile.multiarch .
+#   多架构推送: docker buildx build --platform linux/amd64,linux/arm64 -t repo/zircon:latest -f Dockerfile.multiarch --push .
+
+ARG TARGETARCH
+
+# Stage 1: 构建阶段 - 使用构建主机的原生架构
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG TARGETARCH
+WORKDIR /src
+
+COPY ["Server/Server.csproj", "Server/"]
+COPY . .
+
+# 修改项目引用
+RUN sed -i 's|<ProjectReference Include="\.\.\\Library\\Library\\Library\.csproj" />|<Reference Include="Library"><HintPath>../Debug/Library/Library.dll</HintPath></Reference>|' /src/Server/Server.csproj && \
+    sed -i '/<Target Name="PostBuild"/,/<\/Target>/d' /src/Server/Server.csproj
+
+# 设置目标 RID
+RUN case "$TARGETARCH" in \
+        "arm64") echo "linux-arm64" > /tmp/rid ;; \
+        "amd64") echo "linux-x64" > /tmp/rid ;; \
+        *) echo "linux-x64" > /tmp/rid ;; \
+    esac
+
+WORKDIR /src/Server
+
+# 使用交叉编译：在原生架构上编译目标架构的二进制
+RUN dotnet restore "Server.csproj" -r $(cat /tmp/rid) && \
+    dotnet publish "Server.csproj" \
+        -c Release \
+        -r $(cat /tmp/rid) \
+        -o /app/publish \
+        --self-contained true \
+        --no-restore \
+        -p:PublishSingleFile=false \
+        -p:PublishTrimmed=false
+
+# Stage 2: 运行时阶段 - 使用目标架构
+# 使用 runtime-deps 基础镜像（更小，自包含应用不需要完整运行时）
+FROM mcr.microsoft.com/dotnet/runtime-deps:8.0-bookworm-slim AS runtime
+WORKDIR /zircon
+
+# 复制已编译的应用
+COPY --from=build /app/publish .
+
+# 设置执行权限
+RUN chmod +x /zircon/Server
+
+EXPOSE 7000 7080
+VOLUME ["/zircon/datas"]
+CMD ["/zircon/Server"]
