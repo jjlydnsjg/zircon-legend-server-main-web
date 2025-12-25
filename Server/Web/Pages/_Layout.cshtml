@@ -7,105 +7,8 @@
     <!-- Bootstrap CSS (本地资源) -->
     <link href="/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/lib/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        :root {
-            --sidebar-width: 250px;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: var(--sidebar-width);
-            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-            padding-top: 0;
-            z-index: 100;
-        }
-        .sidebar-brand {
-            padding: 1rem;
-            background: rgba(0,0,0,0.2);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .sidebar-brand h5 {
-            color: #fff;
-            margin: 0;
-            font-weight: 600;
-        }
-        .sidebar-brand small {
-            color: rgba(255,255,255,0.5);
-            font-size: 0.75rem;
-        }
-        .nav-link {
-            color: rgba(255,255,255,0.7);
-            padding: 0.75rem 1rem;
-            border-left: 3px solid transparent;
-            transition: all 0.2s;
-        }
-        .nav-link:hover {
-            color: #fff;
-            background: rgba(255,255,255,0.1);
-            border-left-color: #0d6efd;
-        }
-        .nav-link.active {
-            color: #fff;
-            background: rgba(13,110,253,0.2);
-            border-left-color: #0d6efd;
-        }
-        .nav-link i {
-            margin-right: 0.5rem;
-            width: 20px;
-            text-align: center;
-        }
-        .main-content {
-            margin-left: var(--sidebar-width);
-            min-height: 100vh;
-            background: #f8f9fa;
-        }
-        .top-navbar {
-            background: #fff;
-            border-bottom: 1px solid #dee2e6;
-            padding: 0.75rem 1.5rem;
-        }
-        .content-wrapper {
-            padding: 1.5rem;
-        }
-        .card {
-            border: none;
-            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
-        }
-        .card-header {
-            background: #fff;
-            border-bottom: 1px solid #eee;
-            font-weight: 600;
-        }
-        .stat-card {
-            border-left: 4px solid;
-        }
-        .stat-card.primary { border-left-color: #0d6efd; }
-        .stat-card.success { border-left-color: #198754; }
-        .stat-card.warning { border-left-color: #ffc107; }
-        .stat-card.danger { border-left-color: #dc3545; }
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #333;
-        }
-        .stat-label {
-            color: #6c757d;
-            font-size: 0.875rem;
-        }
-        .nav-section {
-            padding: 0.5rem 1rem;
-            color: rgba(255,255,255,0.4);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 1rem;
-        }
-    </style>
+    <!-- 自定义样式 -->
+    <link href="/css/admin.css" rel="stylesheet">
     @RenderSection("Styles", required: false)
 </head>
 <body>
@@ -114,69 +17,85 @@
         <!-- Sidebar -->
         <nav class="sidebar">
             <div class="sidebar-brand">
-                <h5><i class="bi bi-shield-lock-fill me-2"></i>皓石传奇三</h5>
-                <small>管理后台</small>
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-shield-lock-fill me-2"></i>
+                    <div>
+                        <h5 class="mb-0">皓石传奇三</h5>
+                        <small>管理后台</small>
+                    </div>
+                </div>
             </div>
             <ul class="nav flex-column mt-3">
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Dashboard" ? "active" : "")" href="/Dashboard">
-                        <i class="bi bi-speedometer2"></i>仪表盘
+                        <i class="bi bi-speedometer2"></i>
+                        <span>仪表盘</span>
                     </a>
                 </li>
 
                 <li class="nav-section">玩家管理</li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Players" ? "active" : "")" href="/Players">
-                        <i class="bi bi-people"></i>在线玩家
+                        <i class="bi bi-people"></i>
+                        <span>在线玩家</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Accounts" ? "active" : "")" href="/Accounts">
-                        <i class="bi bi-person-badge"></i>账户管理
+                        <i class="bi bi-person-badge"></i>
+                        <span>账户管理</span>
                     </a>
                 </li>
 
                 <li class="nav-section">游戏管理</li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Items" ? "active" : "")" href="/Items">
-                        <i class="bi bi-box-seam"></i>物品管理
+                        <i class="bi bi-box-seam"></i>
+                        <span>物品管理</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Maps" ? "active" : "")" href="/Maps">
-                        <i class="bi bi-map"></i>地图管理
+                        <i class="bi bi-map"></i>
+                        <span>地图管理</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Monsters" ? "active" : "")" href="/Monsters">
-                        <i class="bi bi-bug"></i>怪物管理
+                        <i class="bi bi-bug"></i>
+                        <span>怪物管理</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Npcs" ? "active" : "")" href="/Npcs">
-                        <i class="bi bi-person-standing"></i>NPC管理
+                        <i class="bi bi-person-standing"></i>
+                        <span>NPC管理</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Skills" ? "active" : "")" href="/Skills">
-                        <i class="bi bi-lightning"></i>技能管理
+                        <i class="bi bi-lightning"></i>
+                        <span>技能管理</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Classes" ? "active" : "")" href="/Classes">
-                        <i class="bi bi-person-badge"></i>职业管理
+                        <i class="bi bi-person-badge"></i>
+                        <span>职业管理</span>
                     </a>
                 </li>
 
                 <li class="nav-section">系统</li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "System" ? "active" : "")" href="/System">
-                        <i class="bi bi-gear"></i>系统管理
+                        <i class="bi bi-gear"></i>
+                        <span>系统管理</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Settings" ? "active" : "")" href="/Settings">
-                        <i class="bi bi-sliders"></i>配置管理
+                        <i class="bi bi-sliders"></i>
+                        <span>配置管理</span>
                     </a>
                 </li>
             </ul>
@@ -189,7 +108,7 @@
                     <h5 class="mb-0">@ViewData["Title"]</h5>
                 </div>
                 <div class="d-flex align-items-center">
-                    <span class="me-3 text-muted">
+                    <span class="me-3 text-muted-custom">
                         <i class="bi bi-person-circle me-1"></i>@User.Identity?.Name
                     </span>
                     <a href="/Logout" class="btn btn-outline-secondary btn-sm">
@@ -209,6 +128,9 @@
 
     <!-- Bootstrap JS (本地资源) -->
     <script src="/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- 侧边栏控制器 -->
+    <script src="/js/admin-sidebar.js"></script>
+    <!-- AJAX 通用函数 -->
     <script src="/js/admin-ajax.js"></script>
     @RenderSection("Scripts", required: false)
 </body>
