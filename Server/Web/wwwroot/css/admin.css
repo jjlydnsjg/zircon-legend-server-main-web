@@ -981,6 +981,21 @@ body {
     color: var(--color-text-primary) !important;
 }
 
+/* 系统管理页面 - 修复 alert-info 的文字颜色 */
+.alert-info {
+    color: #0c5460 !important;
+    background-color: #d1ecf1 !important;
+    border-color: #bee5eb !important;
+}
+
+/* 确保alert内的所有文字都是深色 */
+.alert-info *,
+.alert-info strong,
+.alert-info ul,
+.alert-info li {
+    color: inherit !important;
+}
+
 /* ==================== 打印样式 ==================== */
 @media print {
     .sidebar,
