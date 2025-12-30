@@ -1127,27 +1127,26 @@ body {
 }
 
 /* ==================== 下拉菜单样式修复 ==================== */
-/* 确保表格内下拉菜单不被其他行遮挡 */
-.table-scrollable-card .dropdown-menu,
+/* 解决表格内下拉菜单被遮挡问题 */
+
+/* 允许 card-body 的内容溢出显示 */
+.table-scrollable-card .card-body {
+    overflow: visible !important;
+}
+
+/* 使用外层 wrapper 来控制滚动 */
+.table-scrollable-card {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* 下拉菜单样式 */
 .table .dropdown-menu {
     z-index: 1050 !important;
-    position: fixed !important;
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     min-width: 160px;
-}
-
-/* 当下拉菜单打开时，确保所在行具有更高的堆叠层级 */
-.table tbody tr:has(.dropdown-menu.show) {
-    position: relative;
-    z-index: 100;
-}
-
-/* 确保 btn-group 不影响定位 */
-.table .btn-group.show {
-    position: relative;
-    z-index: 101;
 }
 
 .table .dropdown-menu .dropdown-item {
