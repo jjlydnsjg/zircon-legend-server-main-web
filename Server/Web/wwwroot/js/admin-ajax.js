@@ -220,7 +220,45 @@ function confirmAction(message, callback) {
     }
 }
 
+// 修复表格内下拉菜单被遮挡问题
+const DropdownFixer = {
+    init() {
+        // 监听所有下拉菜单的显示事件
+        document.addEventListener('show.bs.dropdown', function(e) {
+            const dropdown = e.target;
+            const dropdownMenu = dropdown.nextElementSibling || dropdown.querySelector('.dropdown-menu');
+            
+            if (dropdownMenu && dropdown.closest('.table')) {
+                // 将下拉菜单移动到 body 以避免被容器裁剪
+                const rect = dropdown.getBoundingClientRect();
+                dropdownMenu.style.position = 'fixed';
+                dropdownMenu.style.zIndex = '9999';
+                dropdownMenu.style.top = (rect.bottom + 2) + 'px';
+                dropdownMenu.style.left = 'auto';
+                dropdownMenu.style.right = (window.innerWidth - rect.right) + 'px';
+                dropdownMenu.style.transform = 'none';
+            }
+        });
+
+        // 监听下拉菜单隐藏事件,重置样式
+        document.addEventListener('hidden.bs.dropdown', function(e) {
+            const dropdown = e.target;
+            const dropdownMenu = dropdown.nextElementSibling || dropdown.querySelector('.dropdown-menu');
+            
+            if (dropdownMenu && dropdown.closest('.table')) {
+                dropdownMenu.style.position = '';
+                dropdownMenu.style.zIndex = '';
+                dropdownMenu.style.top = '';
+                dropdownMenu.style.left = '';
+                dropdownMenu.style.right = '';
+                dropdownMenu.style.transform = '';
+            }
+        });
+    }
+};
+
 // 页面加载完成后自动初始化
 document.addEventListener('DOMContentLoaded', function() {
     ToastManager.init();
+    DropdownFixer.init();
 });
