@@ -1126,6 +1126,42 @@ body {
     animation: themeRotate 0.5s ease;
 }
 
+/* ==================== 下拉菜单样式修复 ==================== */
+/* 确保表格内下拉菜单不被容器裁剪 */
+.table-scrollable-card .dropdown-menu {
+    z-index: 1050;  /* 高于表头的 z-index: 10 */
+}
+
+/* 确保 btn-group 内的下拉菜单可以正常显示 */
+.table .btn-group {
+    position: static;
+}
+
+.table td {
+    position: relative;
+}
+
+/* 下拉菜单使用 fixed 定位时的样式优化 */
+.table .dropdown-menu {
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    min-width: 160px;
+}
+
+.table .dropdown-menu .dropdown-item {
+    color: var(--color-text-primary);
+    padding: 0.5rem 1rem;
+}
+
+.table .dropdown-menu .dropdown-item:hover {
+    background: var(--color-surface-hover);
+}
+
+.table .dropdown-menu .dropdown-divider {
+    border-color: var(--color-border);
+}
+
 /* ==================== 打印样式 ==================== */
 @media print {
     .sidebar,
