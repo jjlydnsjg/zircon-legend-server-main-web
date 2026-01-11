@@ -15892,30 +15892,10 @@ namespace Zircon.Server.Models
                 case MagicType.SummonSkeleton:
                     ob = null;
 
-                    // 获取护身符消耗数量（自定义或默认1）
-                    int skeletonAmuletCost = magic.Info.AmuletCost > 0 ? magic.Info.AmuletCost : 1;
-
-                    if (!UseAmulet(skeletonAmuletCost, 0))
+                    if (!UseAmulet(1, 0))
                     {
                         cast = false;
                         break;
-                    }
-
-                    // 获取召唤的怪物信息（自定义或默认骷髅）
-                    MonsterInfo summonMonster;
-                    if (magic.Info.SummonMonsterIndex > 0)
-                    {
-                        summonMonster = SEnvir.MonsterInfoList.Binding.FirstOrDefault(x => x.Index == magic.Info.SummonMonsterIndex);
-                        if (summonMonster == null)
-                        {
-                            Connection.ReceiveChat($"召唤配置错误：怪物索引 {magic.Info.SummonMonsterIndex} 不存在", MessageType.System);
-                            cast = false;
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        summonMonster = SEnvir.MonsterInfoList.Binding.First(x => x.Flag == MonsterFlag.Skeleton);
                     }
 
                     ActionList.Add(new DelayedAction(
@@ -15924,7 +15904,7 @@ namespace Zircon.Server.Models
                         new List<UserMagic> { magic },
                         CurrentMap,
                         Functions.Move(CurrentLocation, p.Direction, -1),
-                        summonMonster));
+                        SEnvir.MonsterInfoList.Binding.First(x => x.Flag == MonsterFlag.Skeleton)));
                     break;
                 case MagicType.SummonJinSkeleton:
                     ob = null;
@@ -20648,40 +20628,21 @@ namespace Zircon.Server.Models
         {
             if (info == null) return;
 
-            // 获取数量上限（自定义或默认2）
-            int maxCount = magic.Info.MaxSummonCount > 0 ? magic.Info.MaxSummonCount : 2;
+            MonsterObject ob = Pets.FirstOrDefault(x => x.MonsterInfo == info);
 
-            // 获取技能名称用于提示
-            string skillName = !string.IsNullOrEmpty(magic.Info.Name) ? magic.Info.Name : "不死系宝宝";
-
-            // 统计当前同类型宠物数量
-            int sameTypeCount = Pets.Count(x => x.MonsterInfo == info);
-
-            // 如果 maxCount <= 1，保持原有召唤骷髅的行为（已有则召回）
-            if (maxCount <= 1)
+            if (ob != null)
             {
-                MonsterObject existingPet = Pets.FirstOrDefault(x => x.MonsterInfo == info);
-                if (existingPet != null)
-                {
-                    existingPet.PetRecall();
-                    return;
-                }
-            }
-            // 如果 maxCount > 1，检查同类型宠物数量是否达到上限
-            else if (sameTypeCount >= maxCount)
-            {
-                Connection.ReceiveChat($"召唤{skillName}不能超过【{maxCount}】只", MessageType.System);
+                ob.PetRecall();
                 return;
             }
 
-            // 检查总宠物数量上限（使用 Pets.Count 作为总上限检查）
-            if (Pets.Count >= 200)
+            if (Pets.Count >= 2)
             {
-                Connection.ReceiveChat($"宠物数量已达上限", MessageType.System);
+                Connection.ReceiveChat($"召唤不死系宝宝不能超过【2】只", MessageType.System);
                 return;
             }
 
-            MonsterObject ob = MonsterObject.GetMonster(info);
+            ob = MonsterObject.GetMonster(info);
 
             ob.PetOwner = this;
             Pets.Add(ob);
